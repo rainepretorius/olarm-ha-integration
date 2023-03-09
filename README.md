@@ -11,6 +11,6 @@ Thereafter follow these steps:<br />
 7.) Search for Olarm Sensors<br />
 8.) Enter these details in the fields in the popup.<br />
 9.) Select the Scan Interval in seconds. This is the interval in seconds that Home Assistant will refresh the entity states.<br />
-10.) The zones will appear undet the integration and under entities as binary_sensor.{zone name}<br />
-11.) The services provided by this integration allows you to Arm, Sleep, Stay and Disarm each individually.<br />
+10.) The zones will appear under the integration and under entities as binary_sensor.{zone name}<br />The status of each area will be binary_sensor.{area name}_armed, binary_sensor.{area name}_sleep, binary_sensor.{area name}_stay, binary_sensor.{area name}_disarmed, binary_sensor.{area name}_countdown and binary_sensor.{area name}_alarm.</br>
+11.) The services provided by this integration allows you to Arm, Sleep, Stay and Disarm each area individually.<br />
 12.) Customize your own frontend<br />
