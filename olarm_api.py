@@ -3,13 +3,7 @@ import requests
 
 
 class OlarmApi:
-    def __init__(self, device_id:str, api_key:str) -> None:
-        """
-        DOCSTRING: Creates an instance of the Olarm API to make calls to the api to prefor various actions and get the state of sensors and zones
-        (params):
-            device_id(str): The device id of your Olarm.
-            api_key(str):   Your API key to access the Olarm API.
-        """
+    def __init__(self, device_id, api_key) -> None:
         self.device_id = device_id
         self.api_key = api_key
         self.data = []
@@ -19,9 +13,6 @@ class OlarmApi:
         return None
 
     async def get_sensor_states(self):
-        """
-        Function to get the states of the zones from olarm
-        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -50,9 +41,6 @@ class OlarmApi:
             return self.data
 
     async def get_panel_states(self):
-        """
-        DOCSTRING: Makes an http get request to get the state of each zone for Olarm, whether it is armed, sleeped, stayed, disarmed or alarm.
-        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -175,12 +163,12 @@ class OlarmApi:
                             outdoor_countdown = "off"
 
                         elif olarm_state["areas"][1] == "countdown":
-                            indoor_arm = "off"
-                            indoor_sleep = "off"
-                            indoor_stay = "off"
-                            indoor_disarm = "off"
-                            indoor_alarm = "off"
-                            indoor_countdown = "on"
+                            outdoor_arm = "off"
+                            outdoor_sleep = "off"
+                            outdoor_stay = "off"
+                            outdoor_disarm = "off"
+                            outdoor_alarm = "off"
+                            outdoor_countdown = "on"
 
                     if zones["areasLimit"] == 2:
                         self.panel_data = [
@@ -232,9 +220,7 @@ class OlarmApi:
             return self.panel_data
 
     async def arm_zone_1(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to arm Zone 1
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-arm", "actionNum": 1}
         try:
             async with aiohttp.ClientSession() as session:
@@ -248,9 +234,7 @@ class OlarmApi:
             return False
 
     async def sleep_zone_1(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to sleep Zone 1
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-sleep", "actionNum": 1}
         try:
             async with aiohttp.ClientSession() as session:
@@ -264,9 +248,7 @@ class OlarmApi:
             return False
 
     async def stay_zone_1(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to stay Zone 1
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-stay", "actionNum": 1}
         try:
             async with aiohttp.ClientSession() as session:
@@ -280,9 +262,7 @@ class OlarmApi:
             return False
 
     async def disarm_zone_1(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to disarm Zone 1
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-disarm", "actionNum": 1}
         try:
             async with aiohttp.ClientSession() as session:
@@ -296,9 +276,7 @@ class OlarmApi:
             return False
 
     async def arm_zone_2(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to arm Zone 2
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-arm", "actionNum": 2}
         try:
             async with aiohttp.ClientSession() as session:
@@ -312,9 +290,7 @@ class OlarmApi:
             return False
 
     async def sleep_zone_2(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to sleep Zone 2
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-sleep", "actionNum": 2}
         try:
             async with aiohttp.ClientSession() as session:
@@ -328,9 +304,7 @@ class OlarmApi:
             return False
 
     async def stay_zone_2(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to stay Zone 2
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-stay", "actionNum": 2}
         try:
             async with aiohttp.ClientSession() as session:
@@ -344,9 +318,7 @@ class OlarmApi:
             return False
 
     async def disarm_zone_2(self, a):
-        """
-        DOCSTRING: Makes an HTTP Post request to the Olarm API to disarm Zone 2
-        """
+        print(f"a:\n{a}\n")
         self.post_data = {"actionCmd": "area-disarm", "actionNum": 2}
         try:
             async with aiohttp.ClientSession() as session:
