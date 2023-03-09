@@ -37,51 +37,51 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # Registering Services
     # Zone 1 Arming
     hass.services.async_register(
-        DOMAIN, "zone_1_arm", OLARM_API.arm_zone_1, schema=HTTP_POST_SERVICE_SCHEMA
+        DOMAIN, "area_1_arm", OLARM_API.arm_zone_1, schema=HTTP_POST_SERVICE_SCHEMA
     )
     # Zone 1 Sleeping
     hass.services.async_register(
         DOMAIN,
-        "zone_1_sleep",
+        "area_1_sleep",
         OLARM_API.sleep_zone_1,
         schema=HTTP_POST_SERVICE_SCHEMA,
     )
     # Zone 1 Staying
     hass.services.async_register(
         DOMAIN,
-        "zone_1_stay",
+        "area_1_stay",
         OLARM_API.stay_zone_1,
         schema=HTTP_POST_SERVICE_SCHEMA,
     )
     # Zone 1 Disarming
     hass.services.async_register(
         DOMAIN,
-        "zone_1_disarm",
+        "area_1_disarm",
         OLARM_API.disarm_zone_1,
         schema=HTTP_POST_SERVICE_SCHEMA,
     )
     # Zone 2 Arming
     hass.services.async_register(
-        DOMAIN, "zone_2_arm", OLARM_API.arm_zone_2, schema=HTTP_POST_SERVICE_SCHEMA
+        DOMAIN, "area_2_arm", OLARM_API.arm_zone_2, schema=HTTP_POST_SERVICE_SCHEMA
     )
     # Zone 2 Sleeping
     hass.services.async_register(
         DOMAIN,
-        "zone_2_sleep",
+        "area_2_sleep",
         OLARM_API.sleep_zone_2,
         schema=HTTP_POST_SERVICE_SCHEMA,
     )
     # Zone 2 Staying
     hass.services.async_register(
         DOMAIN,
-        "zone_2_stay",
+        "area_2_stay",
         OLARM_API.stay_zone_2,
         schema=HTTP_POST_SERVICE_SCHEMA,
     )
     # Zone 2 Disarming
     hass.services.async_register(
         DOMAIN,
-        "zone_2_disarm",
+        "area_2_disarm",
         OLARM_API.disarm_zone_2,
         schema=HTTP_POST_SERVICE_SCHEMA,
     )
