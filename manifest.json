@@ -3,7 +3,7 @@
     "name": "Olarm Sensors",
     "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
     "dependencies": [],
-    "codeowners": [],
+    "codeowners": ["@rainepretorius"],
     "requirements": [
         "requests"
     ],
@@ -13,28 +13,28 @@
     "version": "0.1.1",
     "services": {
         "zone_1_arm": {
-            "description": "Send a request to Olarm to arm zone 1 on your alarm."
+            "description": "Send a request to Olarm to arm area 1 on your alarm."
         },
         "zone_1_sleep": {
-            "description": "Send a request to Olarm to set zone 1 to sleep on your alarm."
+            "description": "Send a request to Olarm to set area 1 to sleep on your alarm."
         },
         "zone_1_stay": {
-            "description": "Send a request to Olarm to set zone 1 to stay on your alarm."
+            "description": "Send a request to Olarm to set area 1 to stay on your alarm."
         },
         "zone_1_disarm": {
-            "description": "Send a request to Olarm to disarm zone 1 of your alarm."
+            "description": "Send a request to Olarm to disarm area 1 of your alarm."
         },
         "zone_2_arm": {
-            "description": "Send a request to Olarm to arm zone 2 on your alarm."
+            "description": "Send a request to Olarm to arm area 2 on your alarm."
         },
         "zone_2_sleep": {
-            "description": "Send a request to Olarm to set zone 2 to sleep on your alarm."
+            "description": "Send a request to Olarm to set area 2 to sleep on your alarm."
         },
         "zone_2_stay": {
-            "description": "Send a request to Olarm to set zone 2 to stay on your alarm."
+            "description": "Send a request to Olarm to set area 2 to stay on your alarm."
         },
         "zone_2_disarm": {
-            "description": "Send a request to Olarm to disarm zone 2 of your alarm."
+            "description": "Send a request to Olarm to disarm area 2 of your alarm."
         }
     },
     "homeassistant": {
