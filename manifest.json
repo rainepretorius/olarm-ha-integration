@@ -1,0 +1,47 @@
+{
+    "domain": "olarm_sensors",
+    "name": "Olarm Sensors",
+    "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
+    "dependencies": [],
+    "codeowners": [],
+    "requirements": [
+        "requests"
+    ],
+    "config_flow": true,
+    "entrypoint": "olarm_sensors",
+    "iot_class": "cloud_polling",
+    "version": "0.1.1",
+    "services": {
+        "zone_1_arm": {
+            "description": "Send a request to Olarm to arm zone 1 on your alarm."
+        },
+        "zone_1_sleep": {
+            "description": "Send a request to Olarm to set zone 1 to sleep on your alarm."
+        },
+        "zone_1_stay": {
+            "description": "Send a request to Olarm to set zone 1 to stay on your alarm."
+        },
+        "zone_1_disarm": {
+            "description": "Send a request to Olarm to disarm zone 1 of your alarm."
+        },
+        "zone_2_arm": {
+            "description": "Send a request to Olarm to arm zone 2 on your alarm."
+        },
+        "zone_2_sleep": {
+            "description": "Send a request to Olarm to set zone 2 to sleep on your alarm."
+        },
+        "zone_2_stay": {
+            "description": "Send a request to Olarm to set zone 2 to stay on your alarm."
+        },
+        "zone_2_disarm": {
+            "description": "Send a request to Olarm to disarm zone 2 of your alarm."
+        }
+    },
+    "homeassistant": {
+        "components": [
+            "binary_sensor"
+        ],
+        "entities": [],
+        "services": []
+    }
+}
