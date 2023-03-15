@@ -21,3 +21,11 @@ zone_2_stay:
 
 zone_2_disarm:
   description: Send a request to Olarm to disarm area 2 of your alarm.
+
+bypass_zone:
+  description: Send a request to Olarm to bypass the zone on your alarm.
+  fields:
+    zone_num:
+      description: "Zone Number"
+      example: "1"
+      required: true

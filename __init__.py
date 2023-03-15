@@ -6,9 +6,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import config_validation as cv
 from .olarm_api import OlarmApi
 import voluptuous as vol
-from .const import DOMAIN
+from .const import DOMAIN, ZONE
+from homeassistant.helpers import service
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_DEVICE_ID,
@@ -33,6 +35,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     # Forwarding the setup for the binary sensors.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+
+    # Setting up services
+    async def bypass_service_handler(service):
+        zone = int(service.data["zone_num"])
+        # Do something with the entity ID and brightness
+        OLARM_API.bypass_zone(zone)
 
     # Registering Services
     # Zone 1 Arming
@@ -85,7 +93,17 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         OLARM_API.disarm_zone_2,
         schema=HTTP_POST_SERVICE_SCHEMA,
     )
-
+    # Register the service
+    hass.services.async_register(
+        DOMAIN,
+        "bypass_zone",
+        OLARM_API.bypass_zone,
+        vol.Schema(
+            {
+                vol.Required("zone_num"): vol.Coerce(int),
+            }
+        ),
+    )
     return True
 
 

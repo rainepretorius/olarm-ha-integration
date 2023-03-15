@@ -3,7 +3,9 @@
     "name": "Olarm Sensors",
     "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
     "dependencies": [],
-    "codeowners": ["@rainepretorius"],
+    "codeowners": [
+        "@rainepretorius"
+    ],
     "requirements": [
         "requests"
     ],
@@ -35,6 +37,9 @@
         },
         "zone_2_disarm": {
             "description": "Send a request to Olarm to disarm area 2 of your alarm."
+        },
+        "bypass_zone": {
+            "description": "Send a request to Olarm to bypass the zone on your alarm."
         }
     },
     "homeassistant": {

@@ -3,7 +3,7 @@ To install this custom integration you will need to dowload the contents of this
 <br />
 Thereafter follow these steps:<br />
 1.) Restart Home Assistant<br />
-2.) Enable Advanced mode in Home Assistant if you have not yet done so<br />
+2.) Enable Advanced mode in Home Assistant if you have not yet done so.<br />
 3.) Get your Olarm API key at : https://user.olarm.co/#/api<br />
 4.) Get your device id here: https://apiv4.olarm.co/api/v4/devices?accessToken=APIKEY (Replace API key with the one from step 3).<br />
 5.) Navigate to the Devices and Services tab under Settings.<br />

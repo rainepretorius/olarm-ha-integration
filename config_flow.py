@@ -1,9 +1,10 @@
 import logging
-
+from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
 from . import const
+from .olarm_api import OlarmApi, aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,21 +30,30 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # If user_input is not None, the user has submitted the form
         if user_input is not None:
             # Validate the user input
-            if len(user_input[CONF_API_KEY]) < 1:
-                errors[CONF_API_KEY] = "api_key is required."
-
-            if len(user_input[CONF_DEVICE_ID]) < 1:
-                errors[CONF_DEVICE_ID] = "device_id is required."
-
-            if errors:
-                # If there are errors, return the form with error messages
-                return self.async_show_form(
-                    step_id="user", data_schema=self._get_schema(), errors=errors
-                )
+            errors = {}
+            if not user_input[CONF_API_KEY]:
+                errors[CONF_API_KEY] = "API key is required."
+            if not user_input[CONF_DEVICE_ID]:
+                errors[CONF_DEVICE_ID] = "Device ID is required."
+            if not user_input[CONF_SCAN_INTERVAL]:
+                errors[CONF_SCAN_INTERVAL] = "Scan interval is required."
+            elif user_input[CONF_SCAN_INTERVAL] < 5:
+                errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 5 seconds."
 
             api_key = user_input[CONF_API_KEY]
             device_id = user_input[CONF_DEVICE_ID]
             scan_interval = user_input[CONF_SCAN_INTERVAL]
+
+            try:
+                api = OlarmApi(device_id, api_key)
+                sensors = await api.check_credentials()
+
+            except aiohttp.web.HTTPForbidden:
+                errors[const.AuthenticationError] = "Invalid credentials!"
+
+            # If there are errors, show the setup form with error messages
+            if errors:
+                return await self._show_setup_form(errors=errors)
 
             # If there are no errors, create a config entry and return
             return self.async_create_entry(
@@ -64,21 +74,24 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             {
                 vol.Required(
                     CONF_API_KEY,
-                    description="Olarm API Key",
-                    msg="Olarm API Key",
-                    default="Olarm API Key",
-                ): str,
+                    description={
+                        "suggested_value": "Your Olarm API key",
+                        "description": "API key for accessing the Olarm API. You can find your API key here: https://user.olarm.co/#/api",
+                    },
+                ): cv.string,
                 vol.Required(
                     CONF_DEVICE_ID,
-                    description="Olarm Device ID",
-                    msg="Olarm Device ID",
-                    default="Olarm Device ID",
-                ): str,
+                    description={
+                        "suggested_value": "Your Olarm device ID",
+                        "description": "ID of the Olarm device to be monitored. You can find your device ID here: https://apiv4.olarm.co/api/v4/devices/?accessToken=Your_API_KEY",
+                    },
+                ): cv.string,
                 vol.Required(
                     CONF_SCAN_INTERVAL,
-                    description="Scan Interval",
-                    msg="Scan Interval",
-                    default=1,
-                ): int,
+                    description={
+                        "suggested_value": 5,
+                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 1 second.",
+                    },
+                ): vol.All(vol.Coerce(int), vol.Range(min=5)),
             }
         )
