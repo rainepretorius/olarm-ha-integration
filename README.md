@@ -46,5 +46,5 @@ bypass_zone:</br>
   fields:</br>
     zone_num:</br>
       description: "Zone Number (The zone you want to bypass)"</br>
-      example: "1"</br>
+      example: 1</br>
       required: true</br>
