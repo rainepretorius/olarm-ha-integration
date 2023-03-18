@@ -73,7 +73,7 @@ class OlarmApi:
 
                     return self.data
 
-        except aiohttp.web_exceptions.Any as ex:
+        except aiohttp.client_exceptions.ClientConnectorError as ex:
             _APILOGGER.error(f"Olarm API sensor error\n{ex}")
             return self.data
 
@@ -107,7 +107,7 @@ class OlarmApi:
 
                     return self.bypass_data
 
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return self.bypass_data
 
     async def get_panel_states(self):
@@ -314,7 +314,7 @@ class OlarmApi:
 
                     return self.panel_data
 
-        except aiohttp.web_exceptions.Any as ex:
+        except aiohttp.client_exceptions.ClientConnectorError as ex:
             _APILOGGER.error(f"Olarm API Panel error:\n{ex}")
             return self.panel_data
 
@@ -328,7 +328,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def sleep_zone_1(self, a):
@@ -342,7 +342,7 @@ class OlarmApi:
                 ) as response:
                     return True
 
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def stay_zone_1(self, a):
@@ -355,7 +355,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def disarm_zone_1(self, a):
@@ -368,7 +368,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def arm_zone_2(self, a):
@@ -381,7 +381,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def sleep_zone_2(self, a):
@@ -394,7 +394,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def stay_zone_2(self, a):
@@ -407,7 +407,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def disarm_zone_2(self, a):
@@ -420,7 +420,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
 
     async def bypass_zone(self, zone):
@@ -437,5 +437,5 @@ class OlarmApi:
                 ) as response:
                     await response.json()
                     return True
-        except aiohttp.web_exceptions.Any:
+        except aiohttp.client_exceptions.ClientConnectorError:
             return False
