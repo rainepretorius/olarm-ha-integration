@@ -1,6 +1,8 @@
 import aiohttp
-from datetime import datetime
 import time
+import logging
+
+_APILOGGER = logging.getLogger(__name__)
 
 
 class OlarmApi:
@@ -71,7 +73,8 @@ class OlarmApi:
 
                     return self.data
 
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any as ex:
+            _APILOGGER.error(f"Olarm API sensor error\n{ex}")
             return self.data
 
     async def get_sensor_bypass_states(self):
@@ -104,7 +107,7 @@ class OlarmApi:
 
                     return self.bypass_data
 
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return self.bypass_data
 
     async def get_panel_states(self):
@@ -132,6 +135,12 @@ class OlarmApi:
                     outdoor_alarm = "off"
                     indoor_countdown = "off"
                     outdoor_countdown = "off"
+
+                    if olarm_zones[0] == "":
+                        _APILOGGER.info(
+                            "This device's area names have not been set up in Olarm, generating automatically."
+                        )
+                        olarm_zones[0] = "Area 1"
 
                     if olarm_state["areas"][0] == "arm":
                         indoor_arm = "on"
@@ -186,58 +195,77 @@ class OlarmApi:
 
                     # Zone 2
                     if zones["areasLimit"] == 2:
-                        if olarm_state["areas"][1] == "arm":
-                            outdoor_arm = "on"
-                            outdoor_sleep = "off"
-                            outdoor_stay = "off"
-                            outdoor_disarm = "off"
-                            outdoor_alarm = "off"
-                            outdoor_countdown = "off"
+                        try:
+                            if olarm_state["areas"][1] == "arm":
+                                outdoor_arm = "on"
+                                outdoor_sleep = "off"
+                                outdoor_stay = "off"
+                                outdoor_disarm = "off"
+                                outdoor_alarm = "off"
+                                outdoor_countdown = "off"
 
-                        elif olarm_state["areas"][1] == "sleep":
-                            outdoor_arm = "off"
-                            outdoor_sleep = "on"
-                            outdoor_stay = "off"
-                            outdoor_disarm = "off"
-                            outdoor_alarm = "off"
-                            outdoor_countdown = "off"
+                            elif olarm_state["areas"][1] == "sleep":
+                                outdoor_arm = "off"
+                                outdoor_sleep = "on"
+                                outdoor_stay = "off"
+                                outdoor_disarm = "off"
+                                outdoor_alarm = "off"
+                                outdoor_countdown = "off"
 
-                        elif olarm_state["areas"][1] == "stay":
-                            outdoor_arm = "off"
-                            outdoor_sleep = "off"
-                            outdoor_stay = "on"
-                            outdoor_disarm = "off"
-                            outdoor_alarm = "off"
-                            outdoor_countdown = "off"
+                            elif olarm_state["areas"][1] == "stay":
+                                outdoor_arm = "off"
+                                outdoor_sleep = "off"
+                                outdoor_stay = "on"
+                                outdoor_disarm = "off"
+                                outdoor_alarm = "off"
+                                outdoor_countdown = "off"
 
-                        elif (
-                            olarm_state["areas"][1] == "disarm"
-                            or olarm_state["areas"][1] == "notready"
-                        ):
-                            outdoor_arm = "off"
-                            outdoor_sleep = "off"
-                            outdoor_stay = "off"
-                            outdoor_disarm = "on"
-                            outdoor_alarm = "off"
-                            outdoor_countdown = "off"
+                            elif (
+                                olarm_state["areas"][1] == "disarm"
+                                or olarm_state["areas"][1] == "notready"
+                            ):
+                                outdoor_arm = "off"
+                                outdoor_sleep = "off"
+                                outdoor_stay = "off"
+                                outdoor_disarm = "on"
+                                outdoor_alarm = "off"
+                                outdoor_countdown = "off"
 
-                        elif olarm_state["areas"][1] == "alarm":
-                            outdoor_arm = "off"
-                            outdoor_sleep = "off"
-                            outdoor_stay = "off"
-                            outdoor_disarm = "off"
-                            outdoor_alarm = "on"
-                            outdoor_countdown = "off"
+                            elif olarm_state["areas"][1] == "alarm":
+                                outdoor_arm = "off"
+                                outdoor_sleep = "off"
+                                outdoor_stay = "off"
+                                outdoor_disarm = "off"
+                                outdoor_alarm = "on"
+                                outdoor_countdown = "off"
 
-                        elif olarm_state["areas"][1] == "countdown":
-                            outdoor_arm = "off"
-                            outdoor_sleep = "off"
-                            outdoor_stay = "off"
-                            outdoor_disarm = "off"
-                            outdoor_alarm = "off"
-                            outdoor_countdown = "on"
+                            elif olarm_state["areas"][1] == "countdown":
+                                outdoor_arm = "off"
+                                outdoor_sleep = "off"
+                                outdoor_stay = "off"
+                                outdoor_disarm = "off"
+                                outdoor_alarm = "off"
+                                outdoor_countdown = "on"
 
-                    if zones["areasLimit"] == 2:
+                            zone2 = True
+
+                        except IndexError():
+                            _APILOGGER.info("This device does not have a zone 2.")
+                            zone2 = False
+
+                    if zone2:
+                        if olarm_zones[0] == "":
+                            _APILOGGER.info(
+                                "This device's area names have not been set up in Olarm, generating automatically."
+                            )
+                            olarm_zones[0] = "Area 1"
+
+                        if olarm_zones[1] == "":
+                            _APILOGGER.info(
+                                "This device's area names have not been set up in Olarm, generating automatically."
+                            )
+                            olarm_zones[1] = "Area 2"
+
                         self.panel_data = [
                             {"name": f"{olarm_zones[0]} Armed", "state": indoor_arm},
                             {"name": f"{olarm_zones[0]} Sleep", "state": indoor_sleep},
@@ -266,6 +294,9 @@ class OlarmApi:
                         ]
 
                     else:
+                        if olarm_zones[0] == "":
+                            olarm_zones[0] = "Area 1"
+
                         self.panel_data = [
                             {"name": f"{olarm_zones[0]} Armed", "state": indoor_arm},
                             {"name": f"{olarm_zones[0]} Sleep", "state": indoor_sleep},
@@ -283,7 +314,8 @@ class OlarmApi:
 
                     return self.panel_data
 
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any as ex:
+            _APILOGGER.error(f"Olarm API Panel error:\n{ex}")
             return self.panel_data
 
     async def arm_zone_1(self, a):
@@ -296,7 +328,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def sleep_zone_1(self, a):
@@ -310,7 +342,7 @@ class OlarmApi:
                 ) as response:
                     return True
 
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def stay_zone_1(self, a):
@@ -323,7 +355,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def disarm_zone_1(self, a):
@@ -336,7 +368,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def arm_zone_2(self, a):
@@ -349,7 +381,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def sleep_zone_2(self, a):
@@ -362,7 +394,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def stay_zone_2(self, a):
@@ -375,7 +407,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def disarm_zone_2(self, a):
@@ -388,7 +420,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False
 
     async def bypass_zone(self, zone):
@@ -405,5 +437,5 @@ class OlarmApi:
                 ) as response:
                     await response.json()
                     return True
-        except Exception(BaseException):
+        except aiohttp.web_exceptions.Any:
             return False

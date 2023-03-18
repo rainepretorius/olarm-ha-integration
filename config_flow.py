@@ -49,6 +49,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 sensors = await api.check_credentials()
 
             except aiohttp.web.HTTPForbidden:
+                _LOGGER.warning("User entered invalid credentials or API access is not enabled.")
                 errors[const.AuthenticationError] = "Invalid credentials!"
 
             # If there are errors, show the setup form with error messages
