@@ -12,7 +12,7 @@
     "config_flow": true,
     "entrypoint": "olarm_sensors",
     "iot_class": "cloud_polling",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "services": {
         "zone_1_arm": {
             "description": "Send a request to Olarm to arm area 1 on your alarm."
