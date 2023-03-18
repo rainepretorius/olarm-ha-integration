@@ -1,0 +1,9 @@
+{
+  "name": "Olarm Sensors",
+  "display_name": "Olarm Sensors",
+  "description": "Integration for Olarm alarm devices",
+  "domains": ["binary_sensor", "sensor"],
+  "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
+  "version": "1.0.2",
+  "iot_class": ["Cloud Polling"]
+}
