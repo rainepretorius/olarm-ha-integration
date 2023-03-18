@@ -39,9 +39,9 @@ zone_2_disarm:</br>
   description: Send a request to Olarm to disarm area 2 of your alarm.</br>
 
 bypass_zone:</br>
-  description: Send a request to Olarm to bypass the zone on your alarm.</br>
-  fields:</br>
-    zone_num:</br>
-      description: "Zone Number (The zone you want to bypass)"</br>
-      example: 1</br>
-      required: true</br>
+&nbsp;&nbsp;&nbsp;&nbsp;description: Send a request to Olarm to bypass the zone on your alarm.</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fields:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;zone_num:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description: "Zone Number (The zone you want to bypass)"</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;example: 1</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;required: true</br>
