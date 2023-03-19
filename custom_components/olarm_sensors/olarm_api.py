@@ -27,7 +27,6 @@ class OlarmApi:
         return await self.get_devices_json()
 
     async def get_sensor_states(self, devices_json):
-        LOGGER.info("")
         olarm_state = devices_json["deviceState"]
         olarm_zones = devices_json["deviceProfile"]
 
@@ -86,7 +85,7 @@ class OlarmApi:
         for area_num in range(area_count):
             try:
                 if olarm_zones[area_num] == "":
-                    LOGGER.info(
+                    LOGGER.debug(
                         "This device's area names have not been set up in Olarm, generating automatically."
                     )
                     olarm_zones[area_num] = "Area 1"

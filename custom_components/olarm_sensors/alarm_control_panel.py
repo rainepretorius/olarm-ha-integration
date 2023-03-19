@@ -30,7 +30,7 @@ async def async_setup_entry(
         async_add_entities: Callable[[Iterable[Entity]], None],
 ) -> None:
     """Set up Olarm alarm control panel from a config entry."""
-    LOGGER.info("olarm_panel -> async_setup_entry")
+    LOGGER.debug("olarm_panel -> async_setup_entry")
 
     entities = []
     coordinator = hass.data[DOMAIN][entry.entry_id]
@@ -50,7 +50,7 @@ async def async_setup_entry(
 
 
 class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
-    LOGGER.info("OlarmAlarm")
+    LOGGER.debug("OlarmAlarm")
     """Representation of an Olarm alarm status."""
 
     coordinator: OlarmCoordinator
@@ -60,7 +60,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     def __init__(self, coordinator, sensor_name, state) -> None:
         """Initialize the IMA Protect Alarm Control Panel."""
-        LOGGER.info("OlarmAlarm.init")
+        LOGGER.debug("OlarmAlarm.init")
         super().__init__(coordinator)
         self._changed_by = None
         self._state = ALARM_STATE_TO_HA.get(state)
@@ -68,7 +68,6 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     @property
     def code(self):
-        LOGGER.info("OlarmAlarm.code")
         return self.coordinator.entry.options.get(CONF_ALARM_CODE)
 
     @property
@@ -84,7 +83,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def device_info(self):
         """Return device information about this entity."""
-        LOGGER.info("OlarmAlarm.device_info")
+        LOGGER.debug("OlarmAlarm.device_info")
         return {
             "name": "Olarm Alarm",
             "manufacturer": "Olarm",
@@ -117,7 +116,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         return self._changed_by
 
     def _validate_code(self, code_test) -> bool:
-        LOGGER.info("OlarmAlarm._validate_code")
+        LOGGER.debug("OlarmAlarm._validate_code")
         code = self.code
         if code is None or code == "":
             return True
@@ -131,7 +130,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         return check
 
     async def _async_set_arm_state(self, state: int, code=None) -> None:
-        LOGGER.info("OlarmAlarm._async_set_arm_state")
+        LOGGER.debug("OlarmAlarm._async_set_arm_state")
         """Send set arm state command."""
         if not self._validate_code(code):
             return
@@ -173,7 +172,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         super()._handle_coordinator_update()
 
     async def async_added_to_hass(self) -> None:
-        LOGGER.info("OlarmAlarm.async_added_to_hass")
+        LOGGER.debug("OlarmAlarm.async_added_to_hass")
         """When entity is added to hass."""
         await super().async_added_to_hass()
         self._handle_coordinator_update()
