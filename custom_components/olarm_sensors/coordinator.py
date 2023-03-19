@@ -10,7 +10,6 @@ from .const import LOGGER
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -42,46 +41,40 @@ class OlarmCoordinator(DataUpdateCoordinator):
 
     async def get_panel_states(self):
         try:
-            return await self.api.get_panel_states()
+            """Update data via Olarm's API"""
+            devices_json = await self.api.get_devices_json()
+            if bool(devices_json):
+                return await self.api.get_panel_states(devices_json)
+            else:
+                LOGGER.warning("devices_json is empty, skipping update")
+
         except aiohttp.web.HTTPForbidden as ex:
             LOGGER.error("Could not log in to IMA Protect Alarm, %s", ex)
             return False
 
+    async def update_data(self):
+        devices_json = await self.api.get_devices_json()
+        if bool(devices_json):
+            self.data = await self.api.get_sensor_states(devices_json)
+            self.sensor_data = self.data
+            # Getting the Area Information
+            self.panel_data = await self.api.get_panel_states(devices_json)
+            self.panel_state = self.panel_data
+            # Getting the Bypass Information
+            self.bypass_data = await self.api.get_sensor_bypass_states(devices_json)
+            self.bypass_state = self.bypass_data
+        else:
+            LOGGER.warning("devices_json is empty, skipping update")
+        return {sensor["name"]: sensor["state"] for sensor in self.data}
+
     async def _async_update_data(self):
         """Update data via Olarm's API"""
-        # Geting the Zone Information
-        self.data = await self.api.get_sensor_states()
-        self.sensor_data = self.data
-        # Getting the Area Information
-        self.panel_data = await self.api.get_panel_states()
-        self.panel_state = self.panel_data
-        # Getting the Bypass Information
-        self.bypass_data = await self.api.get_sensor_bypass_states()
-        self.bypass_state = self.bypass_data
-        return {sensor["name"]: sensor["state"] for sensor in self.data}
+        return await self.update_data()
 
     async def async_update_data(self):
         """Update data via Olarm's API"""
-        # Geting the Zone Information
-        self.data = await self.api.get_sensor_states()
-        self.sensor_data = self.data
-        # Getting the Area Information
-        self.panel_data = await self.api.get_panel_states()
-        self.panel_state = self.panel_data
-        # Getting the Bypass Information
-        self.bypass_data = await self.api.get_sensor_bypass_states()
-        self.bypass_state = self.bypass_data
-        return {sensor["name"]: sensor["state"] for sensor in self.data}
+        return await self.update_data()
 
     async def async_get_data(self):
         """Update data via Olarm's API"""
-        # Geting the Zone Information
-        self.data = await self.api.get_sensor_states()
-        self.sensor_data = self.data
-        # Getting the Area Information
-        self.panel_data = await self.api.get_panel_states()
-        self.panel_state = self.panel_data
-        # Getting the Bypass Information
-        self.bypass_data = await self.api.get_sensor_bypass_states()
-        self.bypass_state = self.bypass_data
-        return {sensor["name"]: sensor["state"] for sensor in self.data}
+        return await self.update_data()
