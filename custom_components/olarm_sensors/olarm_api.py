@@ -1,8 +1,7 @@
 import aiohttp
 import time
-import logging
 
-_APILOGGER = logging.getLogger(__name__)
+from .const import LOGGER
 
 
 class OlarmApi:
@@ -14,7 +13,6 @@ class OlarmApi:
         self.panel_data = {}
         self.post_data = {}
         self.headers = {"Authorization": f"Bearer {api_key}"}
-        return None
 
     async def check_credentials(self):
         """
@@ -22,8 +20,8 @@ class OlarmApi:
         """
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
-                headers=self.headers,
+                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
+                    headers=self.headers,
             ) as response:
                 olarm_json = await response.json()
                 olarm_state = olarm_json["deviceState"]
@@ -47,8 +45,8 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
-                    headers=self.headers,
+                        f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
+                        headers=self.headers,
                 ) as response:
                     olarm_json = await response.json()
                     olarm_state = olarm_json["deviceState"]
@@ -56,6 +54,7 @@ class OlarmApi:
 
                     index = 0
                     self.data = []
+
                     for zone in olarm_zones["zonesLabels"]:
                         if str(olarm_state["zones"][index]).lower() == "a":
                             state = "on"
@@ -73,16 +72,16 @@ class OlarmApi:
 
                     return self.data
 
-        except aiohttp.client_exceptions.ClientConnectorError as ex:
-            _APILOGGER.error(f"Olarm API sensor error\n{ex}")
+        except aiohttp.ClientConnectorError as ex:
+            LOGGER.error(f"Olarm API sensor error\n{ex}")
             return self.data
 
     async def get_sensor_bypass_states(self):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
-                    headers=self.headers,
+                        f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
+                        headers=self.headers,
                 ) as response:
                     olarm_json = await response.json()
                     olarm_state = olarm_json["deviceState"]
@@ -107,15 +106,15 @@ class OlarmApi:
 
                     return self.bypass_data
 
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return self.bypass_data
 
     async def get_panel_states(self):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
-                    headers=self.headers,
+                        f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
+                        headers=self.headers,
                 ) as response:
                     olarm_json = await response.json()
                     olarm_state = olarm_json["deviceState"]
@@ -127,76 +126,28 @@ class OlarmApi:
                     area_count = zones["areasLimit"]
                     for area_num in range(area_count):
                         try:
-                            arm = "off"
-                            sleep = "off"
-                            stay = "off"
-                            disarm = "off"
-                            alarm = "off"
-                            countdown = "off"
-
                             if olarm_zones[area_num] == "":
-                                _APILOGGER.info(
+                                LOGGER.info(
                                     "This device's area names have not been set up in Olarm, generating automatically."
                                 )
                                 olarm_zones[area_num] = "Area 1"
+                            if len(olarm_state["areas"]) > area_num:
+                                self.panel_data.extend(
+                                    [
+                                        {
+                                            "name": f"{olarm_zones[area_num]}",
+                                            "state": olarm_state["areas"][area_num],
+                                        }
+                                    ]
+                                )
 
-                            if olarm_state["areas"][area_num] == "arm":
-                                arm = "on"
-
-                            elif olarm_state["areas"][area_num] == "sleep":
-                                sleep = "on"
-
-                            elif olarm_state["areas"][area_num] == "stay":
-                                stay = "on"
-
-                            elif (
-                                olarm_state["areas"][area_num] == "disarm"
-                                or olarm_state["areas"][area_num] == "notready"
-                            ):
-                                disarm = "on"
-
-                            elif olarm_state["areas"][area_num] == "alarm":
-                                alarm = "on"
-
-                            elif olarm_state["areas"][area_num] == "countdown":
-                                countdown = "on"
-
-                            self.panel_data.extend(
-                                [
-                                    {
-                                        "name": f"{olarm_zones[area_num]} Armed",
-                                        "state": arm,
-                                    },
-                                    {
-                                        "name": f"{olarm_zones[area_num]} Sleep",
-                                        "state": sleep,
-                                    },
-                                    {
-                                        "name": f"{olarm_zones[area_num]} Stay",
-                                        "state": stay,
-                                    },
-                                    {
-                                        "name": f"{olarm_zones[area_num]} Disarmed",
-                                        "state": disarm,
-                                    },
-                                    {
-                                        "name": f"{olarm_zones[area_num]} Countdown",
-                                        "state": countdown,
-                                    },
-                                    {
-                                        "name": f"{olarm_zones[area_num]} Alarm",
-                                        "state": alarm,
-                                    },
-                                ]
-                            )
-
-                        except aiohttp.client_exceptions.ClientConnectorError as e:
-                            _APILOGGER.error(f"Olarm API Panel error:\n{e}")
+                        except aiohttp.ClientConnectorError as e:
+                            LOGGER.error(f"Olarm API Panel error:\n{e}")
 
                     return self.panel_data
 
-        except aiohttp.client_exceptions.ClientConnectorError as ex:
-            _APILOGGER.error(f"Olarm API Panel error:\n{ex}")
+        except aiohttp.ClientConnectorError as ex:
+            LOGGER.error(f"Olarm API Panel error:\n{ex}")
             return self.panel_data
 
     async def arm_zone_1(self, a):
@@ -204,12 +155,12 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def sleep_zone_1(self, a):
@@ -217,13 +168,13 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
 
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def stay_zone_1(self, a):
@@ -231,12 +182,12 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def disarm_zone_1(self, a):
@@ -244,12 +195,12 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def arm_zone_2(self, a):
@@ -257,12 +208,12 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def sleep_zone_2(self, a):
@@ -270,12 +221,12 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def stay_zone_2(self, a):
@@ -283,12 +234,12 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def disarm_zone_2(self, a):
@@ -296,13 +247,13 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     return True
 
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False
 
     async def bypass_zone(self, zone):
@@ -313,11 +264,11 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=self.post_data,
-                    headers=self.headers,
+                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                        data=self.post_data,
+                        headers=self.headers,
                 ) as response:
                     await response.json()
                     return True
-        except aiohttp.client_exceptions.ClientConnectorError:
+        except aiohttp.ClientConnectorError:
             return False

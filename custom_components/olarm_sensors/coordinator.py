@@ -4,6 +4,9 @@ import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
+from homeassistant.util import aiohttp
+
+from .const import LOGGER
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 
@@ -18,6 +21,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the data Coordinator"""
+        self.entry = entry
 
         super().__init__(
             hass,
@@ -35,6 +39,13 @@ class OlarmCoordinator(DataUpdateCoordinator):
         self.bypass_state = []
 
         return None
+
+    async def get_panel_states(self):
+        try:
+            return await self.api.get_panel_states()
+        except aiohttp.web.HTTPForbidden as ex:
+            LOGGER.error("Could not log in to IMA Protect Alarm, %s", ex)
+            return False
 
     async def _async_update_data(self):
         """Update data via Olarm's API"""

@@ -1,5 +1,14 @@
 import logging
 import requests
+
+from homeassistant.components.alarm_control_panel import (
+    DOMAIN as ALARM_CONTROL_PANEL_DOMAIN,
+)
+
+from homeassistant.components.binary_sensor import (
+    DOMAIN as BINARY_SENSOR_DOMAIN,
+)
+
 from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -7,6 +16,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import config_validation as cv
+
+from .coordinator import OlarmCoordinator
 from .olarm_api import OlarmApi
 import voluptuous as vol
 from .const import DOMAIN, ZONE
@@ -18,13 +29,20 @@ from homeassistant.const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = ["binary_sensor"]
+PLATFORMS = [
+    ALARM_CONTROL_PANEL_DOMAIN,
+    BINARY_SENSOR_DOMAIN,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """
     DOCSTRING: This function handles the setup of the Olarm integration.
     """
+    coordinator = OlarmCoordinator(hass, entry=config_entry)
+
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][config_entry.entry_id] = coordinator
 
     # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
     OLARM_API = OlarmApi(
