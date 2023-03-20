@@ -11,6 +11,7 @@ from .const import CONF_DEVICE_MODEL
 from .const import LOGGER
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
+import time
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +20,8 @@ class OlarmCoordinator(DataUpdateCoordinator):
     """Manage fetching events state from NVR or camera"""
 
     data = []
+    changed_by = None
+    last_changed = None
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the data Coordinator"""
@@ -55,7 +58,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
                 LOGGER.warning("devices_json is empty, skipping update")
 
         except aiohttp.web.HTTPForbidden as ex:
-            LOGGER.error("Could not log in to IMA Protect Alarm, %s", ex)
+            LOGGER.error("Could not log in to Olarm Alarm, %s", ex)
             return False
 
     async def update_data(self):
@@ -73,6 +76,9 @@ class OlarmCoordinator(DataUpdateCoordinator):
             self.device_make = devices_json["deviceAlarmType"]
             self.device_model = devices_json["deviceSerial"]
             self.device_name = devices_json["deviceName"]
+            change_json = await self.api.get_changed_by_json()
+            self.changed_by = change_json["userFullname"]
+            self.last_changed = time.ctime(int(change_json["actionCreated"]) / 1000)
 
         else:
             LOGGER.warning("devices_json is empty, skipping update")

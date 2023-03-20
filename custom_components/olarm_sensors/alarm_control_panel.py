@@ -1,4 +1,4 @@
-"""Support for IMA Protect alarm control panels."""
+"""Support for Olarm alarm control panels."""
 from __future__ import annotations
 
 import re
@@ -11,9 +11,6 @@ from homeassistant.components.alarm_control_panel import FORMAT_TEXT
 from homeassistant.components.alarm_control_panel.const import SUPPORT_ALARM_ARM_AWAY
 from homeassistant.components.alarm_control_panel.const import SUPPORT_ALARM_ARM_HOME
 from homeassistant.components.alarm_control_panel.const import SUPPORT_ALARM_ARM_NIGHT
-from homeassistant.components.alarm_control_panel.const import (
-    SUPPORT_ALARM_ARM_CUSTOM_BYPASS,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.core import callback
@@ -41,16 +38,13 @@ async def async_setup_entry(
 
     panel_states = await coordinator.get_panel_states()
 
-    index = 1
     for sensor in panel_states:
         sensor = OlarmAlarm(
             coordinator=hass.data[DOMAIN][entry.entry_id],
             sensor_name=sensor["name"],
             state=sensor["state"],
-            zone=index,
         )
         entities.append(sensor)
-        index = index + 1
 
     async_add_entities(entities)
     # async_add_entities([OlarmAlarm(coordinator=hass.data[DOMAIN][entry.entry_id])])
@@ -64,17 +58,15 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     _changed_by: str | None = None
     _state: str | None = None
-    _zone_num = None
 
-    def __init__(self, coordinator, sensor_name, state, zone) -> None:
-        """Initialize the IMA Protect Alarm Control Panel."""
+    def __init__(self, coordinator, sensor_name, state) -> None:
+        """Initialize the Olarm Alarm Control Panel."""
         LOGGER.debug("OlarmAlarm.init")
         super().__init__(coordinator)
         self._changed_by = None
+        self._last_changed = None
         self._state = ALARM_STATE_TO_HA.get(state)
         self.sensor_name = sensor_name
-        self._zone_num = zone
-        self._changed_by = "Raine Pretorius"
 
     @property
     def code(self):
@@ -94,11 +86,10 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     def device_info(self):
         """Return device information about this entity."""
         LOGGER.debug("OlarmAlarm.device_info")
-
         return {
-            "name": f"Olarm Device",
-            "manufacturer": f"{self.coordinator.device_make}",
-            "model": f"{self.coordinator.device_model}",
+            "name": "Olarm Alarm",
+            "manufacturer": "Olarm",
+            "model": "",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
         }
 
@@ -126,6 +117,11 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """Return the last change triggered by."""
         return self._changed_by
 
+    @property
+    def last_changed(self) -> str | None:
+        """Return the last change triggered by."""
+        return self._last_changed
+
     def _validate_code(self, code_test) -> bool:
         LOGGER.debug("OlarmAlarm._validate_code")
         code = self.code
@@ -146,39 +142,10 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         if not self._validate_code(code):
             return
 
-        else:
-            if state == 0:
-                if self._zone_num == 1:
-                    await self.coordinator.api.disarm_zone_1(None)
-
-                elif self._zone_num == 2:
-                    await self.coordinator.api.disarm_zone_2(None)
-
-            elif state == 1:
-                if self._zone_num == 1:
-                    await self.coordinator.api.stay_zone_1(None)
-
-                elif self._zone_num == 2:
-                    await self.coordinator.api.stay_zone_2(None)
-
-            elif state == 2:
-                if self._zone_num == 1:
-                    await self.coordinator.api.arm_zone_1(None)
-
-                elif self._zone_num == 2:
-                    await self.coordinator.api.arm_zone_2(None)
-
-            elif state == 3:
-                if self._zone_num == 1:
-                    await self.coordinator.api.sleep_zone_1(None)
-
-                elif self._zone_num == 2:
-                    await self.coordinator.api.sleep_zone_2(None)
-
         await self.hass.async_add_executor_job(
-            self.coordinator.__setattr__, "status", state
+            self.coordinator.olarm.__setattr__, "status", state
         )
-        # LOGGER.debug("IMA Protect set arm state %s", state)
+        # LOGGER.debug("Olarm set arm state %s", state)
         await self.coordinator.async_refresh()
 
     async def async_alarm_disarm(self, code=None) -> None:
@@ -196,15 +163,6 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """Send arm away command."""
         await self._async_set_arm_state(2, code)
 
-    async def async_alarm_arm_night(self, code=None) -> None:
-        LOGGER.info("OlarmAlarm.async_alarm_arm_night")
-        """Send arm away command."""
-        await self._async_set_arm_state(3, code)
-
-    async def async_alarm_arm_custom_bypass(self, code=None) -> None:
-        """Send arm custom bypass command."""
-        print(code)
-
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -215,7 +173,8 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
                     self._state = ALARM_STATE_TO_HA.get(obj["state"])
                     break
 
-        self._changed_by = "Not Implemented"
+        self._changed_by = self.coordinator.changed_by
+        self._last_changed = self.coordinator.last_changed
         super()._handle_coordinator_update()
 
     async def async_added_to_hass(self) -> None:
@@ -224,8 +183,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         await super().async_added_to_hass()
         self._handle_coordinator_update()
 
-    def get_state_by_name(self, name):
-        for obj in self.panel_state:
-            if obj["name"] == name:
-                return obj["state"]
-        return None
+    @property
+    def state_attributes(self) -> dict | None:
+        """Return the state attributes."""
+        return {"last_changed": self._last_changed, "changed_by": self._changed_by}

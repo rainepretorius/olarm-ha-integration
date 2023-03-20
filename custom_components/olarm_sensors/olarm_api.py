@@ -24,6 +24,20 @@ class OlarmApi:
             LOGGER.error(f"Olarm API Devices error\n{ex}")
         return {}
 
+    async def get_changed_by_json(self):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                    headers=self.headers,
+                ) as response:
+                    changed_by = await response.json()
+                    return changed_by[0]
+
+        except aiohttp.ClientConnectorError as ex:
+            LOGGER.error(f"Olarm API Changed By error\n{ex}")
+        return {}
+
     async def check_credentials(self):
         return await self.get_devices_json()
 
