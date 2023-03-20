@@ -46,19 +46,6 @@ async def async_setup_entry(
         entities.append(sensor)
 
     index = 0
-    # Looping through the area state for each area of the panel.
-    for sensor in coordinator.panel_state:
-        # Creating a sensor for each zone on the alarm panel.
-        sensor = OlarmPanelState(
-            coordinator=coordinator,
-            sensor_name=sensor["name"],
-            state=sensor["state"],
-            index=index,
-        )
-        index = index + 1
-        entities.append(sensor)
-
-    index = 0
     for sensor1 in coordinator.bypass_state:
         # Creating a bypass sensor for each zone on the alarm panel.
         sensor = OlarmBypassSensor(

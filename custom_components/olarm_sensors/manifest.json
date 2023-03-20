@@ -41,12 +41,5 @@
         "bypass_zone": {
             "description": "Send a request to Olarm to bypass the zone on your alarm."
         }
-    },
-    "homeassistant": {
-        "components": [
-            "binary_sensor"
-        ],
-        "entities": [],
-        "services": []
     }
 }
