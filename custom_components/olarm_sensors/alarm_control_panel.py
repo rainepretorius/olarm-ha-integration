@@ -38,13 +38,16 @@ async def async_setup_entry(
 
     panel_states = await coordinator.get_panel_states()
 
+    area = 1
     for sensor in panel_states:
         sensor = OlarmAlarm(
             coordinator=hass.data[DOMAIN][entry.entry_id],
             sensor_name=sensor["name"],
             state=sensor["state"],
+            area=area,
         )
         entities.append(sensor)
+        area = area + 1
 
     async_add_entities(entities)
     # async_add_entities([OlarmAlarm(coordinator=hass.data[DOMAIN][entry.entry_id])])
@@ -58,8 +61,9 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     _changed_by: str | None = None
     _state: str | None = None
+    area = None
 
-    def __init__(self, coordinator, sensor_name, state) -> None:
+    def __init__(self, coordinator, sensor_name, state, area) -> None:
         """Initialize the Olarm Alarm Control Panel."""
         LOGGER.debug("OlarmAlarm.init")
         super().__init__(coordinator)
@@ -67,6 +71,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         self._last_changed = None
         self._state = ALARM_STATE_TO_HA.get(state)
         self.sensor_name = sensor_name
+        self.area = area
 
     @property
     def code(self):
@@ -142,8 +147,42 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         if not self._validate_code(code):
             return
 
+        if state == 0:
+            if self.area == 1:
+                await self.coordinator.api.disarm_zone_1(None)
+
+            elif self.area == 2:
+                await self.coordinator.api.disarm_zone_2(None)
+
+        elif state == 1:
+            if self.area == 1:
+                await self.coordinator.api.stay_zone_1(None)
+
+            elif self.area == 2:
+                await self.coordinator.api.stay_zone_2(None)
+
+        elif state == 2:
+            if self.area == 1:
+                await self.coordinator.api.arm_zone_1(None)
+
+            elif self.area == 2:
+                await self.coordinator.api.arm_zone_2(None)
+
+            else:
+                return
+
+        elif state == 3:
+            if self.area == 1:
+                self.coordinator.api.sleep_zone_1(None)
+
+            elif self.area == 2:
+                self.coordinator.api.sleep_zone_2(None)
+
+            else:
+                return
+
         await self.hass.async_add_executor_job(
-            self.coordinator.olarm.__setattr__, "status", state
+            self.coordinator.__setattr__, "status", state
         )
         # LOGGER.debug("Olarm set arm state %s", state)
         await self.coordinator.async_refresh()
@@ -162,6 +201,11 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         LOGGER.info("OlarmAlarm.async_alarm_arm_away")
         """Send arm away command."""
         await self._async_set_arm_state(2, code)
+
+    async def async_alarm_arm_night(self, code=None) -> None:
+        LOGGER.info("OlarmAlarm.async_alarm_arm_night")
+        """Send arm away command."""
+        await self._async_set_arm_state(3, code)
 
     @callback
     def _handle_coordinator_update(self) -> None:
