@@ -1,7 +1,14 @@
 import logging
 
-from homeassistant.const import STATE_ALARM_ARMED_AWAY, STATE_ALARM_ARMED_NIGHT, STATE_ALARM_ARMING, \
-    STATE_ALARM_TRIGGERED, STATE_ALARM_ARMED_HOME, STATE_ALARM_DISARMED
+from homeassistant.const import (
+    STATE_ALARM_ARMED_AWAY,
+    STATE_ALARM_ARMED_NIGHT,
+    STATE_ALARM_ARMING,
+    STATE_ALARM_TRIGGERED,
+    STATE_ALARM_ARMED_HOME,
+    STATE_ALARM_DISARMED,
+    STATE_ALARM_PENDING,
+)
 
 DOMAIN = "olarm_sensors"
 CONF_UPDATE_INTERVAL = 5
@@ -11,15 +18,18 @@ AuthenticationError = "Invalid Credentials"
 ZONE = 0
 LOGGER = logging.getLogger(__package__)
 CONF_ALARM_CODE = "alarm_code"
+CONF_DEVICE_DEVICE_NAME = "N/A"
+CONF_DEVICE_MAKE = "N/A"
+CONF_DEVICE_MODEL = "N/A"
 
 ALARM_STATE_TO_HA = {
-    'disarm': STATE_ALARM_DISARMED,
-    'notready': STATE_ALARM_DISARMED,
-    'countdown': STATE_ALARM_ARMING,
-    'sleep': STATE_ALARM_ARMED_NIGHT,
-    'stay': STATE_ALARM_ARMED_HOME,
-    'arm': STATE_ALARM_ARMED_AWAY,
-    'alarm': STATE_ALARM_TRIGGERED,
-    'fire': STATE_ALARM_TRIGGERED,
-    'emergency': STATE_ALARM_TRIGGERED,
+    "disarm": STATE_ALARM_DISARMED,
+    "notready": STATE_ALARM_DISARMED,
+    "countdown": STATE_ALARM_ARMING,
+    "sleep": STATE_ALARM_ARMED_NIGHT,
+    "stay": STATE_ALARM_ARMED_HOME,
+    "arm": STATE_ALARM_ARMED_AWAY,
+    "alarm": STATE_ALARM_TRIGGERED,
+    "fire": STATE_ALARM_TRIGGERED,
+    "emergency": STATE_ALARM_TRIGGERED,
 }

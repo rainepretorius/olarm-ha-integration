@@ -5,7 +5,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
 from homeassistant.util import aiohttp
-
+from .const import CONF_DEVICE_DEVICE_NAME
+from .const import CONF_DEVICE_MAKE
+from .const import CONF_DEVICE_MODEL
 from .const import LOGGER
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
@@ -37,6 +39,10 @@ class OlarmCoordinator(DataUpdateCoordinator):
         self.bypass_data = {}
         self.bypass_state = []
 
+        self.device_name = entry.data[CONF_DEVICE_DEVICE_NAME]
+        self.device_make = entry.data[CONF_DEVICE_MAKE]
+        self.device_model = entry.data[CONF_DEVICE_MODEL]
+
         return None
 
     async def get_panel_states(self):
@@ -63,6 +69,11 @@ class OlarmCoordinator(DataUpdateCoordinator):
             # Getting the Bypass Information
             self.bypass_data = await self.api.get_sensor_bypass_states(devices_json)
             self.bypass_state = self.bypass_data
+            # Getting Device_Info
+            self.device_make = devices_json["deviceAlarmType"]
+            self.device_model = devices_json["deviceSerial"]
+            self.device_name = devices_json["deviceName"]
+
         else:
             LOGGER.warning("devices_json is empty, skipping update")
         return {sensor["name"]: sensor["state"] for sensor in self.data}

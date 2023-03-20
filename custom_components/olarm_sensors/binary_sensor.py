@@ -91,7 +91,7 @@ class OlarmSensor(BinarySensorEntity):
         self.set_state = state
         self._attr_is_on = self.set_state == "on"
         self.index = index
-        self._last_changed = last_changed
+        self.last_changed = last_changed
 
         # Setting the type of Binarysensor
         # Motion Sensor
@@ -107,6 +107,14 @@ class OlarmSensor(BinarySensorEntity):
         # Door
         elif "door" in self.sensor_name.lower():
             self._attr_device_class = BinarySensorDeviceClass.DOOR
+
+        # Powered by AC
+        elif "ac" in self.sensor_name.lower():
+            self._attr_device_class = BinarySensorDeviceClass.PLUG
+
+        # Powered By Battery
+        elif "batt" in self.sensor_name.lower():
+            self._attr_device_class = BinarySensorDeviceClass.POWER
 
         # Motion Sensor if no match.
         else:
@@ -175,6 +183,18 @@ class OlarmSensor(BinarySensorEntity):
             else:
                 return "mdi:door-closed"
 
+        # Powered by AC
+        elif "ac" in self.sensor_name.lower():
+            if self.is_on:
+                return "mdi:power-plug"
+
+            else:
+                return "mdi:power-plug-off"
+
+        # Powered By Battery
+        elif "batt" in self.sensor_name.lower():
+            return "mdi:battery"
+
         # Motion Sensor if no match
         else:
             if self.is_on:
@@ -186,17 +206,15 @@ class OlarmSensor(BinarySensorEntity):
     @property
     def available(self):
         """
-        DOCSTRING: Whether the entity is available. IE the coordinator updatees successfully.
+        DOCSTRING: Whether the entity is available. IE the coordinator updates successfully.
         """
         return self.coordinator.last_update_success
 
     @property
-    def device_state_attributes(self):
-        """
-        DOCSTRING: The last time the state of the zone/ sensor changed on Olarm's side.
-        """
-        self._last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-        return {"last_tripped_time": self._last_changed}
+    def state_attributes(self) -> dict | None:
+        """Return the state attributes."""
+        self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+        return {"last_tripped_time": self.last_changed}
 
     async def async_update(self):
         if self.coordinator.sensor_data[self.index][
@@ -206,18 +224,14 @@ class OlarmSensor(BinarySensorEntity):
         ):
             # Zone Active
             self._attr_is_on = True
-            self._last_changed = self.coordinator.sensor_data[self.index][
-                "last_changed"
-            ]
+            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
             self.async_write_ha_state()
             return True
 
         else:
             # Zone not active
             self._attr_is_on = False
-            self._last_changed = self.coordinator.sensor_data[self.index][
-                "last_changed"
-            ]
+            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
             self.async_write_ha_state()
             return False
 
@@ -248,7 +262,7 @@ class OlarmPanelState(BinarySensorEntity):
         self.set_state = state
         self._attr_is_on = self.set_state == "on"
         self.index = index
-        self._last_changed = datetime.datetime.now()
+        self.last_changed = datetime.datetime.now()
         self._old_state = self.set_state == "on"
 
     @property
@@ -334,7 +348,7 @@ class OlarmBypassSensor(BinarySensorEntity):
         self.set_state = state
         self._attr_is_on = self.set_state == "on"
         self.index = index
-        self._last_changed = last_changed
+        self.last_changed = last_changed
 
     @property
     def unique_id(self):
@@ -392,8 +406,8 @@ class OlarmBypassSensor(BinarySensorEntity):
         """
         DOCSTRING: The last time the state of the zone/ sensor changed on Olarm's side.
         """
-        self._last_changed = self.coordinator.bypass_state[self.index]["last_changed"]
-        return {"last_tripped_time": self._last_changed}
+        self.last_changed = self.coordinator.bypass_state[self.index]["last_changed"]
+        return {"last_tripped_time": self.last_changed}
 
     async def async_added_to_hass(self):
         """

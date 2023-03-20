@@ -15,12 +15,13 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                        f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
-                        headers=self.headers,
+                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
+                    headers=self.headers,
                 ) as response:
                     return await response.json()
+
         except aiohttp.ClientConnectorError as ex:
-            LOGGER.error(f"Olarm API sensor error\n{ex}")
+            LOGGER.error(f"Olarm API Devices error\n{ex}")
         return {}
 
     async def check_credentials(self):
@@ -40,18 +41,25 @@ class OlarmApi:
             else:
                 state = "off"
 
-            last_changed = time.ctime(
-                int(olarm_state["zonesStamp"][index]) / 1000
-            )
+            last_changed = time.ctime(int(olarm_state["zonesStamp"][index]) / 1000)
             self.data.append(
                 {"name": zone, "state": state, "last_changed": last_changed}
             )
             index = index + 1
 
+        for key, value in olarm_state["power"].items():
+            if value == 1:
+                state = "on"
+
+            else:
+                state = "off"
+            self.data.append(
+                {"name": f"Powered by {key}", "state": state, "last_changed": None}
+            )
+
         return self.data
 
     async def get_sensor_bypass_states(self, devices_json):
-
         olarm_state = devices_json["deviceState"]
         olarm_zones = devices_json["deviceProfile"]
 
@@ -64,9 +72,7 @@ class OlarmApi:
             else:
                 state = "off"
 
-            last_changed = time.ctime(
-                int(olarm_state["zonesStamp"][index]) / 1000
-            )
+            last_changed = time.ctime(int(olarm_state["zonesStamp"][index]) / 1000)
             bypass_data.append(
                 {"name": zone, "state": state, "last_changed": last_changed}
             )
@@ -108,9 +114,9 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                        url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                        data=post_data,
-                        headers=self.headers,
+                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                    data=post_data,
+                    headers=self.headers,
                 ) as response:
                     return True
         except aiohttp.ClientConnectorError:

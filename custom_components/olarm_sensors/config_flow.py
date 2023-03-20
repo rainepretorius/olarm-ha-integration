@@ -3,13 +3,19 @@ from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
-from . import const
 from .olarm_api import OlarmApi, aiohttp
+from .const import (
+    CONF_DEVICE_DEVICE_NAME,
+    CONF_DEVICE_MAKE,
+    CONF_DEVICE_MODEL,
+    AuthenticationError,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
+class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Olarm Sensors."""
 
     async def _show_setup_form(self, errors=None):
@@ -46,23 +52,34 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
             try:
                 api = OlarmApi(device_id, api_key)
-                sensors = await api.check_credentials()
+                json = await api.check_credentials()
 
             except aiohttp.web.HTTPForbidden:
-                _LOGGER.warning("User entered invalid credentials or API access is not enabled.")
-                errors[const.AuthenticationError] = "Invalid credentials!"
+                _LOGGER.warning(
+                    "User entered invalid credentials or API access is not enabled."
+                )
+                errors[AuthenticationError] = "Invalid credentials!"
 
             # If there are errors, show the setup form with error messages
             if errors:
                 return await self._show_setup_form(errors=errors)
 
             # If there are no errors, create a config entry and return
+            device_name = json["deviceName"]
+            device_make = str(json["deviceAlarmType"]).capitalize()
+            device_model = json["deviceSerial"]
+            print(
+                f"Device Name:\t{device_name}\nDevice Make:\t{device_make}\nDevice Model\t{device_model}"
+            )
             return self.async_create_entry(
                 title="Olarm Sensors",
                 data={
                     CONF_API_KEY: api_key,
                     CONF_DEVICE_ID: device_id,
                     CONF_SCAN_INTERVAL: scan_interval,
+                    CONF_DEVICE_DEVICE_NAME: device_name,
+                    CONF_DEVICE_MAKE: device_make,
+                    CONF_DEVICE_MODEL: device_model,
                 },
             )
 
