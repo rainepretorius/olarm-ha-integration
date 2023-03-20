@@ -4,6 +4,6 @@
   "description": "Integration for Olarm devices",
   "domains": ["binary_sensor"],
   "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "iot_class": ["Cloud Polling"]
 }
