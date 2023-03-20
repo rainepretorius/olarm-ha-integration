@@ -62,7 +62,7 @@ class OlarmApi:
             index = index + 1
 
         for key, value in olarm_state["power"].items():
-            if value == 1:
+            if value == "1":
                 state = "on"
 
             else:
