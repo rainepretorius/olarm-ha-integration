@@ -96,9 +96,9 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """Return device information about this entity."""
         LOGGER.debug("OlarmAlarm.device_info")
         return {
-            "name": "Olarm Sensors",
+            "name": "Olarm Alarm",
             "manufacturer": "Raine Pretorius",
-            "model": "Olarm Device",
+            "model": "Custom Integration",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
         }
 

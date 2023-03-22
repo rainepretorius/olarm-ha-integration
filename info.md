@@ -1,5 +1,9 @@
 # Olarm Home Assistant Integration
-Installation steps:<br />
+# Supported Devices
+Currrently only tested on Paradox alarm systems</br>
+If you receive an error for your panel. Please send the response of:
+https://apiv4.olarm.co/api/v4/devices/device_id?accessToken=api_key to raine.pretorius1@gmail.com or create an issue on <a href="https://github.com/rainepretorius/olarm-ha-integration/issues">Github</a>.</br>
+# Installation steps:<br />
 1.) Install via HACS.<br />
 2.) Restart Home Assistant.<br />
 3.) Get your Olarm API key at : https://user.olarm.co/#/api<br />
@@ -9,9 +13,9 @@ Installation steps:<br />
 7.) Search for Olarm Sensors<br />
 8.) Enter these details in the fields in the popup.<br />
 9.) Select the Scan Interval in seconds. This is the interval in seconds that Home Assistant will refresh the entity states.<br />
-10.) The zones will appear under the integration and under entities as binary_sensor.{zone name}<br />The status of each area will be binary_sensor.{area name}_armed, binary_sensor.{area name}_sleep, binary_sensor.{area name}_stay, binary_sensor.{area name}_disarmed, binary_sensor.{area name}_countdown and binary_sensor.{area name}_alarm.</br>
+10.) The zones will appear under the integration and under entities as binary_sensor.{zone name}. The status of each area will be alarm_control_panel.{area name}</br>
 11.) The services provided by this integration allows you to Arm, Sleep, Stay and Disarm each area individually.<br />
-12.) Customize your own frontend<br />
+12.) Customize your own frontend or use the <a href="https://www.home-assistant.io/dashboards/alarm-panel/">Home Assistant Alarm Panel Card</a><br />
 <br />
 # Services</br>
 zone_1_arm:</br>
