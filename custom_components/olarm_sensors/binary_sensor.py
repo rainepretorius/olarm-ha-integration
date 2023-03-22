@@ -67,6 +67,10 @@ async def async_setup_entry(
 
 
 class OlarmSensor(BinarySensorEntity):
+    """
+    This class represents a binary sensor entity in Home Assistant for an Olarm security zone. It defines the sensor's state and attributes, and provides methods for updating them.
+    """
+
     index = 0
 
     def __init__(

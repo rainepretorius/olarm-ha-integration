@@ -5,13 +5,33 @@ from .const import LOGGER
 
 
 class OlarmApi:
+    """
+    This class provides an interface to the Olarm API. It handles authentication, and provides methods for making requests to arm, disarm, sleep, or stay a security zone.
+    params:
+        \tdevice_id (str): UUID for the Olarm device.
+        \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
+    """
+
     def __init__(self, device_id, api_key) -> None:
+        """
+        DOCSTRING: Initatiates a connection to the Olarm API.
+        params:
+        \tdevice_id (str): UUID for the Olarm device.
+        \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
+        """
         self.device_id = device_id
         self.api_key = api_key
         self.data = []
+        self.bypass_data = []
+        self.panel_data = []
         self.headers = {"Authorization": f"Bearer {api_key}"}
 
-    async def get_devices_json(self):
+    async def get_devices_json(self) -> dict:
+        """
+        DOCSTRING: This method gets and returns the data from the Olarm API for a spesific device:
+
+        return:\tdict\tThe info associated with a device
+        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -24,7 +44,11 @@ class OlarmApi:
             LOGGER.error(f"Olarm API Devices error\n{ex}")
         return {}
 
-    async def get_changed_by_json(self):
+    async def get_changed_by_json(self) -> str:
+        """
+        DOCSTRING:\tGets the actions for a spesific device from Olarm and returns the user that last chenged the state of an Area.
+        return (str):\tThe user that triggered tha last state change of an area.
+        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -36,30 +60,46 @@ class OlarmApi:
 
         except aiohttp.ClientConnectorError as ex:
             LOGGER.error(f"Olarm API Changed By error\n{ex}")
-        return {}
 
-    async def check_credentials(self):
+        return "Error"
+
+    async def check_credentials(self) -> dict:
+        """
+        DOCSTRING:\tChecks if the details the user provided is valid.
+
+        return (dict):\tThe device json from Olarm.
+        """
         return await self.get_devices_json()
 
-    async def get_sensor_states(self, devices_json):
+    async def get_sensor_states(self, devices_json) -> list:
+        """
+        DOCSTRING:\tGets the state for each zone for each area of your alarm panel.
+
+        params:\n\t device_json (dict): The device json from get_devices_json.
+
+        return:\tList:\t A sensor for each zone in each area of the alarm panel. As well as the power states.
+        """
         olarm_state = devices_json["deviceState"]
         olarm_zones = devices_json["deviceProfile"]
 
-        index = 0
         self.data = []
 
-        for zone in olarm_zones["zonesLabels"]:
-            if str(olarm_state["zones"][index]).lower() == "a":
+        for zone in range(0, olarm_zones["zonesLimit"]):
+            if str(olarm_state["zones"][zone]).lower() == "a":
                 state = "on"
 
             else:
                 state = "off"
 
-            last_changed = time.ctime(int(olarm_state["zonesStamp"][index]) / 1000)
+            last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
+
             self.data.append(
-                {"name": zone, "state": state, "last_changed": last_changed}
+                {
+                    "name": olarm_zones["zonesLabels"][zone],
+                    "state": state,
+                    "last_changed": last_changed,
+                }
             )
-            index = index + 1
 
         for key, value in olarm_state["power"].items():
             if value == "1":
@@ -67,39 +107,60 @@ class OlarmApi:
 
             else:
                 state = "off"
+
+            if key == "Batt":
+                key = "Battery"
+
             self.data.append(
                 {"name": f"Powered by {key}", "state": state, "last_changed": None}
             )
 
         return self.data
 
-    async def get_sensor_bypass_states(self, devices_json):
+    async def get_sensor_bypass_states(self, devices_json) -> list:
+        """
+        DOCSTRING:\tGets the bypass state for each zone for each area of your alarm panel.
+
+        params:\n\t device_json (dict): The device json from get_devices_json.
+
+        return:\tList:\t A sensor for each zone's bypass state in each area of the alarm panel.
+        """
         olarm_state = devices_json["deviceState"]
         olarm_zones = devices_json["deviceProfile"]
 
-        index = 0
-        bypass_data = []
-        for zone in olarm_zones["zonesLabels"]:
-            if str(olarm_state["zones"][index]).lower() == "b":
+        self.bypass_data = []
+
+        for zone in range(0, olarm_zones["zonesLimit"]):
+            if str(olarm_state["zones"][zone]).lower() == "b":
                 state = "on"
 
             else:
                 state = "off"
 
-            last_changed = time.ctime(int(olarm_state["zonesStamp"][index]) / 1000)
-            bypass_data.append(
-                {"name": zone, "state": state, "last_changed": last_changed}
+            last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
+
+            self.bypass_data.append(
+                {
+                    "name": olarm_zones["zonesLabels"][zone],
+                    "state": state,
+                    "last_changed": last_changed,
+                }
             )
-            index = index + 1
 
-        return bypass_data
+        return self.bypass_data
 
-    async def get_panel_states(self, devices_json):
+    async def get_panel_states(self, devices_json) -> list:
+        """
+        DOCSTRING:\tGets the state of each zone for the alarm panel from Olarm.
+        params:\n\t device_json (dict): The device json from get_devices_json.
+
+        return: (list):\tThe state for each are of the alarm panel.
+        """
         olarm_state = devices_json["deviceState"]
         zones = devices_json["deviceProfile"]
         olarm_zones = zones["areasLabels"]
 
-        panel_data = []
+        self.panel_data = []
 
         area_count = zones["areasLimit"]
         for area_num in range(area_count):
@@ -108,9 +169,10 @@ class OlarmApi:
                     LOGGER.debug(
                         "This device's area names have not been set up in Olarm, generating automatically."
                     )
-                    olarm_zones[area_num] = "Area 1"
+                    olarm_zones[area_num] = f"Area {area_num}"
+
                 if len(olarm_state["areas"]) > area_num:
-                    panel_data.extend(
+                    self.panel_data.extend(
                         [
                             {
                                 "name": f"{olarm_zones[area_num]}",
@@ -122,9 +184,13 @@ class OlarmApi:
             except aiohttp.ClientConnectorError as e:
                 LOGGER.error(f"Olarm API Panel error:\n{e}")
 
-        return panel_data
+        return self.panel_data
 
     async def update_zone(self, post_data):
+        """
+        DOCSTRING:\tSends an action to the Olarm API to perform an action on the device.
+        params:\n\tpost_data (dict): The area to perform the action to. As well as the action.
+        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -132,43 +198,47 @@ class OlarmApi:
                     data=post_data,
                     headers=self.headers,
                 ) as response:
-                    return True
+                    return await response.json()
         except aiohttp.ClientConnectorError:
             return False
 
-    async def arm_zone_1(self, a):
-        post_data = {"actionCmd": "area-arm", "actionNum": 1}
+    async def arm_area(self, a=None, area=1):
+        """
+        DOCSTRING: Sends the request to update_zone to arm an area.
+        params:\n\tarea (int): The number of the area to apply the zone to.
+        """
+        post_data = {"actionCmd": "area-arm", "actionNum": area.data["area"]}
         return await self.update_zone(post_data)
 
-    async def sleep_zone_1(self, a):
-        post_data = {"actionCmd": "area-sleep", "actionNum": 1}
+    async def sleep_area(self, a=None, area=1):
+        """
+        DOCSTRING: Sends the request to update_zone to arm an area.
+        params:\n\tarea (int): The number of the area to apply the zone to.
+        """
+        post_data = {"actionCmd": "area-sleep", "actionNum": area.data["area"]}
         return await self.update_zone(post_data)
 
-    async def stay_zone_1(self, a):
-        post_data = {"actionCmd": "area-stay", "actionNum": 1}
+    async def stay_area(self, a=None, area=1):
+        """
+        DOCSTRING: Sends the request to update_zone to arm an area.
+        params:\n\tarea (int): The number of the area to apply the zone to.
+        """
+        post_data = {"actionCmd": "area-stay", "actionNum": area.data["area"]}
         return await self.update_zone(post_data)
 
-    async def disarm_zone_1(self, a):
-        post_data = {"actionCmd": "area-disarm", "actionNum": 1}
-        return await self.update_zone(post_data)
-
-    async def arm_zone_2(self, a):
-        post_data = {"actionCmd": "area-arm", "actionNum": 2}
-        return await self.update_zone(post_data)
-
-    async def sleep_zone_2(self, a):
-        post_data = {"actionCmd": "area-sleep", "actionNum": 2}
-        return await self.update_zone(post_data)
-
-    async def stay_zone_2(self, a):
-        post_data = {"actionCmd": "area-stay", "actionNum": 2}
-        return await self.update_zone(post_data)
-
-    async def disarm_zone_2(self, a):
-        post_data = {"actionCmd": "area-disarm", "actionNum": 2}
+    async def disarm_area(self, a=None, area=1):
+        """
+        DOCSTRING: Sends the request to update_zone to arm an area.
+        params:\n\tarea (int): The number of the area to apply the zone to.
+        """
+        post_data = {"actionCmd": "area-disarm", "actionNum": area.data["area"]}
         return await self.update_zone(post_data)
 
     async def bypass_zone(self, zone):
+        """
+        DOCSTRING: Sends the request to update_zone to bypass a zone.
+        params:\n\tzone (dict): The number of the zone to apply the zone to.
+        """
         post_data = {
             "actionCmd": "zone-bypass",
             "actionNum": zone.data["zone_num"],

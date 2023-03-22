@@ -54,6 +54,10 @@ async def async_setup_entry(
 
 
 class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
+    """
+    This class represents an alarm control panel entity in Home Assistant for an Olarm security zone. It defines the panel's state and attributes, and provides methods for updating them.
+    """
+
     LOGGER.debug("OlarmAlarm")
     """Representation of an Olarm alarm status."""
 
@@ -92,9 +96,9 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """Return device information about this entity."""
         LOGGER.debug("OlarmAlarm.device_info")
         return {
-            "name": "Olarm Alarm",
-            "manufacturer": "Olarm",
-            "model": "",
+            "name": "Olarm Sensors",
+            "manufacturer": "Raine Pretorius",
+            "model": "Olarm Device",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
         }
 

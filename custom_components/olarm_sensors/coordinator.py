@@ -17,14 +17,18 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class OlarmCoordinator(DataUpdateCoordinator):
-    """Manage fetching events state from NVR or camera"""
+    """
+    This class handles the coordination of the Olarm integration. It fetches data for the coordinator from the Olarm API, and provides it to the binary sensors and alarm control panel.
+    """
 
     data = []
     changed_by = None
     last_changed = None
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize the data Coordinator"""
+        """
+        This class handles the coordination of the Olarm integration. It fetches data for the coordinator from the Olarm API, and provides it to the binary sensors and alarm control panel.
+        """
         self.entry = entry
 
         super().__init__(
