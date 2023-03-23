@@ -202,36 +202,36 @@ class OlarmApi:
         except aiohttp.ClientConnectorError:
             return False
 
-    async def arm_area(self, a=None, area=1):
+    async def arm_area(self, a=None):
         """
         DOCSTRING: Sends the request to update_zone to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-arm", "actionNum": area.data["area"]}
+        post_data = {"actionCmd": "area-arm", "actionNum": a.data["area"]}
         return await self.update_zone(post_data)
 
-    async def sleep_area(self, a=None, area=1):
+    async def sleep_area(self, a=None):
         """
         DOCSTRING: Sends the request to update_zone to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-sleep", "actionNum": area.data["area"]}
+        post_data = {"actionCmd": "area-sleep", "actionNum": a.data["area"]}
         return await self.update_zone(post_data)
 
-    async def stay_area(self, a=None, area=1):
+    async def stay_area(self, a=None):
         """
         DOCSTRING: Sends the request to update_zone to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-stay", "actionNum": area.data["area"]}
+        post_data = {"actionCmd": "area-stay", "actionNum": a.data["area"]}
         return await self.update_zone(post_data)
 
-    async def disarm_area(self, a=None, area=1):
+    async def disarm_area(self, a=None):
         """
         DOCSTRING: Sends the request to update_zone to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-disarm", "actionNum": area.data["area"]}
+        post_data = {"actionCmd": "area-disarm", "actionNum": a.data["area"]}
         return await self.update_zone(post_data)
 
     async def bypass_zone(self, zone):
