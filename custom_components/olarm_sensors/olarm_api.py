@@ -237,6 +237,9 @@ class OlarmApi:
                 name = ukey_labels[i]
                 number = i + 1
 
+                if name == "":
+                    name == f"Ukey {number}"
+
                 ukeys.append({"name": name, "state": state, "ukey_number": number})
 
             except BaseException as ex:
