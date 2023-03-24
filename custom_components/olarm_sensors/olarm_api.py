@@ -213,7 +213,7 @@ class OlarmApi:
                 return pgms
 
             except BaseException as ex:
-                LOGGER.error(f"Olarm PPGM Error:\n{ex}")
+                LOGGER.error(f"Olarm PGM Error:\n{ex}")
                 return []
 
     async def get_ukey_zones(self, devices_json) -> list:
