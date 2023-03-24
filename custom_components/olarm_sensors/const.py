@@ -14,13 +14,14 @@ DOMAIN = "olarm_sensors"
 CONF_UPDATE_INTERVAL = 5
 DEFAULT_UPDATE_INTERVAL = 5
 MIN_UPDATE_INTERVAL = 5
-AuthenticationError = "Invalid Credentials"
+AuthenticationError = "invalid_credentials"
+DeviceIDError = "invalid_device_id"
 ZONE = 0
 LOGGER = logging.getLogger(__package__)
 CONF_ALARM_CODE = "alarm_code"
-CONF_DEVICE_DEVICE_NAME = "N/A"
-CONF_DEVICE_MAKE = "N/A"
-CONF_DEVICE_MODEL = "N/A"
+CONF_DEVICE_NAME = "olarm_device_name"
+CONF_DEVICE_MAKE = "olarm_device_make"
+CONF_DEVICE_MODEL = "olarm_device_model"
 
 ALARM_STATE_TO_HA = {
     "disarm": STATE_ALARM_DISARMED,

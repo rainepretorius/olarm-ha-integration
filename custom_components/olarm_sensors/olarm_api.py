@@ -1,7 +1,7 @@
 import aiohttp
 import time
-
 from .const import LOGGER
+from .exceptions import APIClientConnectorError
 
 
 class OlarmApi:
@@ -40,25 +40,35 @@ class OlarmApi:
                 ) as response:
                     return await response.json()
 
-        except aiohttp.ClientConnectorError as ex:
+        except APIClientConnectorError as ex:
             LOGGER.error(f"Olarm API Devices error\n{ex}")
         return {}
 
-    async def get_changed_by_json(self) -> str:
+    async def get_changed_by_json(self, area) -> str:
         """
         DOCSTRING:\tGets the actions for a spesific device from Olarm and returns the user that last chenged the state of an Area.
         return (str):\tThe user that triggered tha last state change of an area.
         """
+        return_data = {"userFullname": "No User", "actionCreated": 0, "actionCmd": None}
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
                     headers=self.headers,
                 ) as response:
-                    changed_by = await response.json()
-                    return changed_by[0]
+                    changes = await response.json()
+                    for change in changes:
+                        if (
+                            change["actionCmd"] != "zone-bypass"
+                            and int(change["actionNum"]) == int(area)
+                            and return_data["actionCreated"]
+                            < int(change["actionCreated"])
+                        ):
+                            return_data = change
 
-        except aiohttp.ClientConnectorError as ex:
+                    return return_data
+
+        except APIClientConnectorError as ex:
             LOGGER.error(f"Olarm API Changed By error\n{ex}")
 
         return "Error"
@@ -181,7 +191,7 @@ class OlarmApi:
                         ]
                     )
 
-            except aiohttp.ClientConnectorError as e:
+            except APIClientConnectorError as e:
                 LOGGER.error(f"Olarm API Panel error:\n{e}")
 
         return self.panel_data
@@ -213,7 +223,7 @@ class OlarmApi:
                 return pgms
 
             except BaseException as ex:
-                LOGGER.error(f"Olarm PGM Error:\n{ex}")
+                LOGGER.error(f"Olarm PPGM Error:\n{ex}")
                 return []
 
     async def get_ukey_zones(self, devices_json) -> list:
@@ -252,13 +262,13 @@ class OlarmApi:
                 ) as response:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
-        except aiohttp.ClientConnectorError:
+        except APIClientConnectorError:
             return False
 
     async def update_pgm(self, pgm_data):
         """
         DOCSTRING:\tSends an action to the Olarm API to perform a pgm action on the device.
-        params:\n\tpost_data (dict): The area to perform the action to. As well as the action.
+        params:\n\tpost_data (dict): The pgm to perform the action to. As well as the action.
         """
         try:
             async with aiohttp.ClientSession() as session:
@@ -269,7 +279,24 @@ class OlarmApi:
                 ) as response:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
-        except aiohttp.ClientConnectorError:
+        except APIClientConnectorError:
+            return False
+
+    async def update_ukey(self, ukey_data):
+        """
+        DOCSTRING:\tSends an action to the Olarm API to perform a pgm action on the device.
+        params:\n\tukey_data (dict): The ukey to perform the action to. As well as the action.
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                    data=ukey_data,
+                    headers=self.headers,
+                ) as response:
+                    resp = await response.json()
+                    return str(resp["actionStatus"]).lower() == "ok"
+        except APIClientConnectorError:
             return False
 
     async def arm_area(self, a=None):

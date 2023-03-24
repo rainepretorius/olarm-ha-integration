@@ -66,7 +66,7 @@ class PGMButtonEntity(Entity):
         enabled=False,
         pgm_number=None,
         pulse=False,
-    ):
+    ) -> None:
         """Initialize the custom button entity."""
         self.coordinator = coordinator
         self.sensor_name = name
@@ -74,6 +74,9 @@ class PGMButtonEntity(Entity):
         self._enabled = enabled
         self._pgm_number = (pgm_number,)
         self._pulse = pulse
+        self.post_data = {}
+
+        return None
 
     @property
     def name(self):
@@ -148,12 +151,17 @@ class PGMButtonEntity(Entity):
 class UKeyButtonEntity(Entity):
     """Representation of a custom button entity."""
 
-    def __init__(self, coordinator: OlarmCoordinator, name, state, ukey_number=None):
+    def __init__(
+        self, coordinator: OlarmCoordinator, name, state, ukey_number=None
+    ) -> None:
         """Initialize the custom button entity."""
         self.coordinator = coordinator
         self.sensor_name = name
         self._state = state
         self._ukey_number = ukey_number
+        self.post_data = {}
+
+        return None
 
     @property
     def name(self):

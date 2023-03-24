@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
 import datetime
-from homeassistant.exceptions import *
+
+# from homeassistant.exceptions import *
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -328,6 +329,10 @@ class OlarmPanelState(BinarySensorEntity):
 
 
 class OlarmBypassSensor(BinarySensorEntity):
+    """
+    This class represents a binary sensor entity in Home Assistant for an Olarm security zone's bypass state. It defines the sensor's state and attributes, and provides methods for updating them.
+    """
+
     index = 0
 
     def __init__(

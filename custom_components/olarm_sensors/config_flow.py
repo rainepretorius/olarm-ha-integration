@@ -3,14 +3,16 @@ from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
-from .olarm_api import OlarmApi, aiohttp
+from .olarm_api import OlarmApi
 from .const import (
-    CONF_DEVICE_DEVICE_NAME,
+    CONF_DEVICE_NAME,
     CONF_DEVICE_MAKE,
     CONF_DEVICE_MODEL,
     AuthenticationError,
     DOMAIN,
+    DeviceIDError,
 )
+from .exceptions import APIForbiddenError, APINotFoundError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,11 +56,15 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 api = OlarmApi(device_id, api_key)
                 json = await api.check_credentials()
 
-            except aiohttp.web.HTTPForbidden:
+            except APIForbiddenError:
                 _LOGGER.warning(
                     "User entered invalid credentials or API access is not enabled."
                 )
                 errors[AuthenticationError] = "Invalid credentials!"
+
+            except APINotFoundError:
+                _LOGGER.warning("User entered invalid device_id.")
+                errors[DeviceIDError] = "Invalid credentials!"
 
             # If there are errors, show the setup form with error messages
             if errors:
@@ -68,16 +74,15 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             device_name = json["deviceName"]
             device_make = str(json["deviceAlarmType"]).capitalize()
             device_model = json["deviceSerial"]
-            print(
-                f"Device Name:\t{device_name}\nDevice Make:\t{device_make}\nDevice Model\t{device_model}"
-            )
+
+            # Saving the device
             return self.async_create_entry(
-                title="Olarm Sensors",
+                title=f"Olarm Sensors ({device_name})",
                 data={
                     CONF_API_KEY: api_key,
                     CONF_DEVICE_ID: device_id,
                     CONF_SCAN_INTERVAL: scan_interval,
-                    CONF_DEVICE_DEVICE_NAME: device_name,
+                    CONF_DEVICE_NAME: device_name,
                     CONF_DEVICE_MAKE: device_make,
                     CONF_DEVICE_MODEL: device_model,
                 },
