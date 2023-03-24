@@ -186,6 +186,58 @@ class OlarmApi:
 
         return self.panel_data
 
+    async def get_pgm_zones(self, devices_json) -> list:
+        pgm_state = devices_json["deviceState"]["pgm"]
+        pgm_labels = devices_json["deviceProfile"]["pgmLabels"]
+        pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
+        pgm_setup = devices_json["deviceProfile"]["pgmControl"]
+        pgms = []
+        for i in range(0, pgm_limit):
+            try:
+                state = str(pgm_state[i]).lower() == "a"
+                name = pgm_labels[i]
+                enabled = pgm_setup[i][0] == "1"
+                pulse = pgm_setup[i][2] == "1"
+                number = i + 1
+
+                pgms.append(
+                    {
+                        "name": name,
+                        "enabled": enabled,
+                        "pulse": pulse,
+                        "state": state,
+                        "pgm_number": number,
+                    }
+                )
+
+                return pgms
+
+            except BaseException as ex:
+                LOGGER.error(f"Olarm PPGM Error:\n{ex}")
+                return []
+
+    async def get_ukey_zones(self, devices_json) -> list:
+        ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
+        ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
+        ukey_state = devices_json["deviceProfile"]["ukeysControl"]
+        ukeys = []
+        for i in range(0, ukey_limit):
+            try:
+                state = int(ukey_state[i]) == 1
+                name = ukey_labels[i]
+                number = i + 1
+
+                ukeys.append({"name": name, "state": state, "ukey_number": number})
+
+                return ukeys
+
+            except BaseException as ex:
+                LOGGER.error(f"Olarm Ukey Error:\n{ex}")
+                return []
+
+    async def get_alarm_trigger(self, devices_json) -> list:
+        return devices_json["deviceState"]["areasDetail"]
+
     async def update_zone(self, post_data):
         """
         DOCSTRING:\tSends an action to the Olarm API to perform an action on the device.
@@ -198,7 +250,25 @@ class OlarmApi:
                     data=post_data,
                     headers=self.headers,
                 ) as response:
-                    return await response.json()
+                    resp = await response.json()
+                    return str(resp["actionStatus"]).lower() == "ok"
+        except aiohttp.ClientConnectorError:
+            return False
+
+    async def update_pgm(self, pgm_data):
+        """
+        DOCSTRING:\tSends an action to the Olarm API to perform a pgm action on the device.
+        params:\n\tpost_data (dict): The area to perform the action to. As well as the action.
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                    data=pgm_data,
+                    headers=self.headers,
+                ) as response:
+                    resp = await response.json()
+                    return str(resp["actionStatus"]).lower() == "ok"
         except aiohttp.ClientConnectorError:
             return False
 

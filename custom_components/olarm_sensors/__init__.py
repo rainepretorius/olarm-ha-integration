@@ -1,14 +1,12 @@
 import logging
 import requests
-
 from homeassistant.components.alarm_control_panel import (
     DOMAIN as ALARM_CONTROL_PANEL_DOMAIN,
 )
-
 from homeassistant.components.binary_sensor import (
     DOMAIN as BINARY_SENSOR_DOMAIN,
 )
-
+from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
 from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -16,7 +14,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import config_validation as cv
-
 from .coordinator import OlarmCoordinator
 from .olarm_api import OlarmApi
 import voluptuous as vol
@@ -29,10 +26,7 @@ from homeassistant.const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [
-    ALARM_CONTROL_PANEL_DOMAIN,
-    BINARY_SENSOR_DOMAIN,
-]
+PLATFORMS = [ALARM_CONTROL_PANEL_DOMAIN, BINARY_SENSOR_DOMAIN, BUTTON_DOMAIN]
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):

@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from typing import Callable
-
+import voluptuous as vol
 from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
 from homeassistant.components.alarm_control_panel import FORMAT_NUMBER
 from homeassistant.components.alarm_control_panel import FORMAT_TEXT
@@ -17,7 +17,6 @@ from homeassistant.core import callback
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
 from .const import ALARM_STATE_TO_HA
 from .const import CONF_ALARM_CODE
 from .const import DOMAIN
@@ -65,7 +64,8 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     _changed_by: str | None = None
     _state: str | None = None
-    area = None
+    area:int = 1
+    _area_trigger: str | None = None
 
     def __init__(self, coordinator, sensor_name, state, area) -> None:
         """Initialize the Olarm Alarm Control Panel."""
@@ -136,13 +136,18 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         code = self.code
         if code is None or code == "":
             return True
+        
         if isinstance(code, str):
             alarm_code = code
+        
         else:
             alarm_code = code.render(parse_result=False)
+        
         check = not alarm_code or code_test == alarm_code
+
         if not check:
             LOGGER.warning("Invalid code given")
+        
         return check
 
     async def _async_set_arm_state(self, state: int, code=None) -> None:
@@ -152,43 +157,21 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
             return
 
         if state == 0:
-            if self.area == 1:
-                await self.coordinator.api.disarm_zone_1(None)
-
-            elif self.area == 2:
-                await self.coordinator.api.disarm_zone_2(None)
+            await self.coordinator.api.disarm_area(vol.Schema({vol.Optional("area", default=self.area): int}))
 
         elif state == 1:
-            if self.area == 1:
-                await self.coordinator.api.stay_zone_1(None)
-
-            elif self.area == 2:
-                await self.coordinator.api.stay_zone_2(None)
+            await self.coordinator.api.stay_area(vol.Schema({vol.Optional("area", default=self.area): int}))
 
         elif state == 2:
-            if self.area == 1:
-                await self.coordinator.api.arm_zone_1(None)
-
-            elif self.area == 2:
-                await self.coordinator.api.arm_zone_2(None)
-
-            else:
-                return
+            await self.coordinator.api.arm_area(vol.Schema({vol.Optional("area", default=self.area): int}))
 
         elif state == 3:
-            if self.area == 1:
-                self.coordinator.api.sleep_zone_1(None)
-
-            elif self.area == 2:
-                self.coordinator.api.sleep_zone_2(None)
-
-            else:
-                return
+            await self.coordinator.api.sleep_area(vol.Schema({vol.Optional("area", default=self.area): int}))
 
         await self.hass.async_add_executor_job(
             self.coordinator.__setattr__, "status", state
         )
-        # LOGGER.debug("Olarm set arm state %s", state)
+        
         await self.coordinator.async_refresh()
 
     async def async_alarm_disarm(self, code=None) -> None:
@@ -223,6 +206,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
         self._changed_by = self.coordinator.changed_by
         self._last_changed = self.coordinator.last_changed
+        self._area_trigger = self.coordinator.area_triggers[self.area-1]
         super()._handle_coordinator_update()
 
     async def async_added_to_hass(self) -> None:
@@ -234,4 +218,4 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def state_attributes(self) -> dict | None:
         """Return the state attributes."""
-        return {"last_changed": self._last_changed, "changed_by": self._changed_by}
+        return {"last_changed": self._last_changed, "changed_by": self._changed_by, 'area_trigger': self._area_trigger}

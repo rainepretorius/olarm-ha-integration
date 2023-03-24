@@ -45,6 +45,9 @@ class OlarmCoordinator(DataUpdateCoordinator):
         self.panel_state = []
         self.bypass_data = {}
         self.bypass_state = []
+        self.ukey_data = []
+        self.pgm_data = []
+        self.area_triggers = ["", ""]
 
         self.device_name = entry.data[CONF_DEVICE_DEVICE_NAME]
         self.device_make = entry.data[CONF_DEVICE_MAKE]
@@ -76,16 +79,23 @@ class OlarmCoordinator(DataUpdateCoordinator):
             # Getting the Bypass Information
             self.bypass_data = await self.api.get_sensor_bypass_states(devices_json)
             self.bypass_state = self.bypass_data
-            # Getting Device_Info
+            # Getting Device Info
             self.device_make = devices_json["deviceAlarmType"]
             self.device_model = devices_json["deviceSerial"]
             self.device_name = devices_json["deviceName"]
+            # Getting the device profile
             change_json = await self.api.get_changed_by_json()
             self.changed_by = change_json["userFullname"]
             self.last_changed = time.ctime(int(change_json["actionCreated"]) / 1000)
+            # Getting PGM Data
+            self.pgm_data = await self.api.get_pgm_zones(devices_json)
+            # Getting Ukey Data
+            self.ukey_data = await self.api.get_ukey_zones(devices_json)
+            # Getting alarm trigger
+            self.area_triggers = await self.api.get_alarm_trigger(devices_json)
 
         else:
-            LOGGER.warning("devices_json is empty, skipping update")
+            LOGGER.warning("Olarm Sensors:\ndevices_json is empty, skipping update")
         return {sensor["name"]: sensor["state"] for sensor in self.data}
 
     async def _async_update_data(self):
