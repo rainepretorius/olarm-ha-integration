@@ -237,9 +237,6 @@ class OlarmApi:
                 name = ukey_labels[i]
                 number = i + 1
 
-                LOGGER.warning(
-                    f"Ukey no {number} has no name. Generating automatically."
-                )
                 if name == "":
                     name == f"Ukey {number}"
 
