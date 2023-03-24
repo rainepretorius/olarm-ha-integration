@@ -202,7 +202,7 @@ class OlarmApi:
         pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
         pgm_setup = devices_json["deviceProfile"]["pgmControl"]
         pgms = []
-        for i in range(0, pgm_limit):
+        for i in range(pgm_limit):
             try:
                 state = str(pgm_state[i]).lower() == "a"
                 name = pgm_labels[i]
@@ -220,18 +220,18 @@ class OlarmApi:
                     }
                 )
 
-                return pgms
-
             except BaseException as ex:
-                LOGGER.error(f"Olarm PPGM Error:\n{ex}")
+                LOGGER.error(f"Olarm PGM Error:\n{ex}")
                 return []
+
+        return pgms
 
     async def get_ukey_zones(self, devices_json) -> list:
         ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
         ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
         ukey_state = devices_json["deviceProfile"]["ukeysControl"]
         ukeys = []
-        for i in range(0, ukey_limit):
+        for i in range(ukey_limit):
             try:
                 state = int(ukey_state[i]) == 1
                 name = ukey_labels[i]
@@ -239,11 +239,11 @@ class OlarmApi:
 
                 ukeys.append({"name": name, "state": state, "ukey_number": number})
 
-                return ukeys
-
             except BaseException as ex:
                 LOGGER.error(f"Olarm Ukey Error:\n{ex}")
                 return []
+
+        return ukeys
 
     async def get_alarm_trigger(self, devices_json) -> list:
         return devices_json["deviceState"]["areasDetail"]

@@ -10,10 +10,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
 import datetime
+from .const import CONF_DEVICE_NAME, CONF_DEVICE_MODEL, CONF_DEVICE_MAKE, LOGGER, DOMAIN
+from homeassistant.const import CONF_DEVICE_ID
 
 # from homeassistant.exceptions import *
 
-_LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -30,7 +32,7 @@ async def async_setup_entry(
     # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
     await coordinator.async_get_data()
 
-    _LOGGER.info("Setting up Olarm Sensors")
+    LOGGER.info("Setting up Olarm Sensors")
 
     # Looping through the sensors/zones for the panel.
     index = 0
@@ -59,12 +61,12 @@ async def async_setup_entry(
         index = index + 1
         entities.append(sensor)
 
-    _LOGGER.info("Adding Olarm Sensors")
+    LOGGER.info("Adding Olarm Sensors")
 
     # Adding Olarm Sensors to Home Assistant
     async_add_entities(entities)
 
-    _LOGGER.info("Added Olarm Sensors")
+    LOGGER.info("Added Olarm Sensors")
 
 
 class OlarmSensor(BinarySensorEntity):
@@ -221,6 +223,17 @@ class OlarmSensor(BinarySensorEntity):
         self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
         return {"last_tripped_time": self.last_changed}
 
+    @property
+    def device_info(self) -> dict:
+        """Return device information about this entity."""
+        LOGGER.debug("OlarmAlarm.device_info")
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
+            "manufacturer": f"Olarm Integration",
+            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
+            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+        }
+
     async def async_update(self):
         if self.coordinator.sensor_data[self.index][
             "state"
@@ -318,6 +331,17 @@ class OlarmPanelState(BinarySensorEntity):
         DOCSTRING: Whether the entity is available. IE the coordinator updatees successfully.
         """
         return self.coordinator.last_update_success
+
+    @property
+    def device_info(self) -> dict:
+        """Return device information about this entity."""
+        LOGGER.debug("OlarmAlarm.device_info")
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
+            "manufacturer": f"Olarm Integration",
+            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
+            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+        }
 
     async def async_added_to_hass(self):
         """
@@ -417,6 +441,17 @@ class OlarmBypassSensor(BinarySensorEntity):
         """
         self.last_changed = self.coordinator.bypass_state[self.index]["last_changed"]
         return {"last_tripped_time": self.last_changed}
+
+    @property
+    def device_info(self) -> dict:
+        """Return device information about this entity."""
+        LOGGER.debug("OlarmAlarm.device_info")
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
+            "manufacturer": f"Olarm Integration",
+            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
+            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+        }
 
     async def async_added_to_hass(self):
         """

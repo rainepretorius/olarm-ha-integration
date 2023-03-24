@@ -9,10 +9,10 @@
         "@rainepretorius"
     ],
     "requirements": [
-        "requests"
+        "aiohttp"
     ],
     "config_flow": true,
     "entrypoint": "olarm_sensors",
     "iot_class": "cloud_polling",
-    "version": "1.0.9"
+    "version": "1.1.0"
 }

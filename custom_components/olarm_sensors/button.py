@@ -3,7 +3,9 @@ from .coordinator import OlarmCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .const import LOGGER as _LOGGER
+from .const import LOGGER as LOGGER
+from homeassistant.const import CONF_DEVICE_ID
+from .const import CONF_DEVICE_NAME, CONF_DEVICE_MODEL, CONF_DEVICE_MAKE, LOGGER, DOMAIN
 from homeassistant.const import CONF_DEVICE_ID
 
 
@@ -21,7 +23,9 @@ async def async_setup_entry(
     # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
     await coordinator.async_get_data()
 
-    _LOGGER.info("Setting up Olarm Sensors")
+    LOGGER.info("Setting up Olarm Sensors")
+
+    LOGGER.warn(coordinator.pgm_data)
 
     # Looping through the pgm's for the panel.
     for sensor in coordinator.pgm_data:
@@ -47,12 +51,12 @@ async def async_setup_entry(
         )
         entities.append(sensor)
 
-    _LOGGER.info("Adding Olarm PGM's and Ukeys")
+    LOGGER.info("Adding Olarm PGM's and Ukeys")
 
     # Adding Olarm Sensors to Home Assistant
     async_add_entities(entities)
 
-    _LOGGER.info("Added Olarm PGM's and Ukeys")
+    LOGGER.info("Added Olarm PGM's and Ukeys")
 
 
 class PGMButtonEntity(Entity):
@@ -71,7 +75,7 @@ class PGMButtonEntity(Entity):
         self.coordinator = coordinator
         self.sensor_name = name
         self._state = state
-        self._enabled = enabled
+        self._enabled = True  # enabled
         self._pgm_number = (pgm_number,)
         self._pulse = pulse
         self.post_data = {}
@@ -147,6 +151,17 @@ class PGMButtonEntity(Entity):
         else:
             return "off"
 
+    @property
+    def device_info(self) -> dict:
+        """Return device information about this entity."""
+        LOGGER.debug("OlarmAlarm.device_info")
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
+            "manufacturer": f"Olarm Integration",
+            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
+            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+        }
+
 
 class UKeyButtonEntity(Entity):
     """Representation of a custom button entity."""
@@ -214,3 +229,14 @@ class UKeyButtonEntity(Entity):
 
         else:
             return "off"
+
+    @property
+    def device_info(self) -> dict:
+        """Return device information about this entity."""
+        LOGGER.debug("OlarmAlarm.device_info")
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
+            "manufacturer": f"Olarm Integration",
+            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
+            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+        }
