@@ -265,6 +265,7 @@ class OlarmApi:
                 ) as response:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
+
         except APIClientConnectorError:
             return False
 
@@ -282,6 +283,7 @@ class OlarmApi:
                 ) as response:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
+
         except APIClientConnectorError:
             return False
 
@@ -299,6 +301,7 @@ class OlarmApi:
                 ) as response:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
+
         except APIClientConnectorError:
             return False
 

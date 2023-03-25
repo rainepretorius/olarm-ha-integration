@@ -21,6 +21,7 @@ from .const import ALARM_STATE_TO_HA
 from .const import CONF_ALARM_CODE
 from .const import DOMAIN
 from .const import LOGGER
+from .const import AlarmPanelArea
 from .const import CONF_DEVICE_NAME, CONF_DEVICE_MODEL, CONF_DEVICE_MAKE
 from .coordinator import OlarmCoordinator
 from .exceptions import DictionaryKeyError, ListIndexError
@@ -152,57 +153,27 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
         return check
 
-    async def _async_set_arm_state(self, state: int, code=None) -> None:
-        LOGGER.debug("OlarmAlarm._async_set_arm_state")
-        """Send set arm state command."""
+    async def async_alarm_disarm(self, code=None) -> None:
         if not self._validate_code(code):
             return
-
-        if state == 0:
-            await self.coordinator.api.disarm_area(
-                vol.Schema({vol.Optional("area", default=self.area): int})
-            )
-
-        elif state == 1:
-            await self.coordinator.api.stay_area(
-                vol.Schema({vol.Optional("area", default=self.area): int})
-            )
-
-        elif state == 2:
-            await self.coordinator.api.arm_area(
-                vol.Schema({vol.Optional("area", default=self.area): int})
-            )
-
-        elif state == 3:
-            await self.coordinator.api.sleep_area(
-                vol.Schema({vol.Optional("area", default=self.area): int})
-            )
-
-        await self.hass.async_add_executor_job(
-            self.coordinator.__setattr__, "status", state
-        )
-
-        await self.coordinator.async_refresh()
-
-    async def async_alarm_disarm(self, code=None) -> None:
         LOGGER.info("OlarmAlarm.async_alarm_disarm")
         """Send disarm command."""
-        await self._async_set_arm_state(0, code)
+        return await self.coordinator.api.disarm_area(AlarmPanelArea(self.area))
 
     async def async_alarm_arm_home(self, code=None) -> None:
         LOGGER.info("OlarmAlarm.async_alarm_arm_home")
         """Send arm home command."""
-        await self._async_set_arm_state(1, code)
+        return await self.coordinator.api.stay_area(AlarmPanelArea(self.area))
 
     async def async_alarm_arm_away(self, code=None) -> None:
         LOGGER.info("OlarmAlarm.async_alarm_arm_away")
         """Send arm away command."""
-        await self._async_set_arm_state(2, code)
+        return await self.coordinator.api.arm_area(AlarmPanelArea(self.area))
 
     async def async_alarm_arm_night(self, code=None) -> None:
         LOGGER.info("OlarmAlarm.async_alarm_arm_night")
         """Send arm away command."""
-        await self._async_set_arm_state(3, code)
+        return await self.coordinator.api.sleep_area(AlarmPanelArea(self.area))
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -216,12 +187,23 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
         try:
             self._changed_by = self.coordinator.changed_by[self.area]
-            self._last_changed = self.coordinator.last_changed[self.area]
-            self._last_action = self.coordinator.last_action[self.area]
-            self._area_trigger = self.coordinator.area_triggers[self.area - 1]
-
         except ListIndexError:
-            pass
+            LOGGER.error("Could not set alarm panel changed by.")
+
+        try:
+            self._last_changed = self.coordinator.last_changed[self.area]
+        except ListIndexError:
+            LOGGER.error("Could not set alarm panel last changed.")
+
+        try:
+            self._last_action = self.coordinator.last_action[self.area]
+        except ListIndexError:
+            LOGGER.error("Could not set alarm panel last action.")
+
+        try:
+            self._area_trigger = self.coordinator.area_triggers[self.area - 1]
+        except ListIndexError:
+            LOGGER.error("Could not set alarm panel trigger.")
 
         super()._handle_coordinator_update()
 

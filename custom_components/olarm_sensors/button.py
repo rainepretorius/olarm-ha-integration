@@ -29,7 +29,7 @@ async def async_setup_entry(
 
     # Looping through the pgm's for the panel.
     for sensor in coordinator.pgm_data:
-        if not sensor['enabled']:
+        if not sensor["enabled"]:
             continue
         # Creating a sensor for each zone on the alarm panel.
         sensor = PGMButtonEntity(
@@ -141,11 +141,11 @@ class PGMButtonEntity(Entity):
     async def async_added_to_hass(self):
         """Run when the entity is added to Home Assistant."""
         await super().async_added_to_hass()
-    
+
     async def async_press(self):
         if self._state:
             await self.async_turn_off()
-        
+
         else:
             await self.async_turn_on()
 

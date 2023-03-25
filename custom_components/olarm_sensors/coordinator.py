@@ -20,7 +20,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
 
     data = []
     changed_by: dict = {1: None, 2: None}
-    last_changed: dict = {1: None, 2: None}
+    last_changed: dict = {1: time.ctime(), 2: time.ctime()}
     last_action: dict = {1: None, 2: None}
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -46,6 +46,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
         self.ukey_data = []
         self.pgm_data = []
         self.area_triggers = [None, None, None, None, None, None, None, None]
+        self.last_changed: dict = {1: time.ctime(), 2: time.ctime()}
 
         return None
 

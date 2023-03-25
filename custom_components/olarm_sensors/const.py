@@ -34,3 +34,14 @@ ALARM_STATE_TO_HA = {
     "fire": STATE_ALARM_TRIGGERED,
     "emergency": STATE_ALARM_TRIGGERED,
 }
+
+
+class AlarmPanelArea:
+    area: int = 0
+
+    def __init__(self, area: int):
+        self.area = area
+
+    @property
+    def data(self):
+        return {"area": self.area}
