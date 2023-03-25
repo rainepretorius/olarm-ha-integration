@@ -29,6 +29,8 @@ async def async_setup_entry(
 
     # Looping through the pgm's for the panel.
     for sensor in coordinator.pgm_data:
+        if not sensor['enabled']:
+            continue
         # Creating a sensor for each zone on the alarm panel.
         sensor = PGMButtonEntity(
             coordinator=coordinator,
@@ -139,6 +141,13 @@ class PGMButtonEntity(Entity):
     async def async_added_to_hass(self):
         """Run when the entity is added to Home Assistant."""
         await super().async_added_to_hass()
+    
+    async def async_press(self):
+        if self._state:
+            await self.async_turn_off()
+        
+        else:
+            await self.async_turn_on()
 
     @property
     def state(self):
@@ -198,7 +207,7 @@ class UKeyButtonEntity(Entity):
         """Return the icon of the custom button entity."""
         return "mdi:gesture-tap-button"
 
-    async def async_turn_on(self, **kwargs):
+    async def async_press(self):
         """Turn the custom button entity on."""
         self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}
 
@@ -207,20 +216,6 @@ class UKeyButtonEntity(Entity):
 
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
         self.async_schedule_update_ha_state()
-
-    async def async_turn_off(self, **kwargs):
-        """Turn the custom button entity on."""
-        self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}
-
-        await self.coordinator.api.update_ukey(self.post_data)
-        await self.coordinator.async_update_data()
-
-        self._state = self.coordinator.ukey_data[self._ukey_number - 1]
-        self.async_schedule_update_ha_state()
-
-    async def async_added_to_hass(self):
-        """Run when the entity is added to Home Assistant."""
-        await super().async_added_to_hass()
 
     @property
     def state(self):
