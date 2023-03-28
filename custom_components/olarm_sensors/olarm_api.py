@@ -1,7 +1,10 @@
 import aiohttp
 import time
 from .const import LOGGER
-from .exceptions import APIClientConnectorError
+from .exceptions import (
+    APIClientConnectorError,
+    APIMethodError,
+)
 
 
 class OlarmApi:
@@ -41,10 +44,10 @@ class OlarmApi:
                     return await response.json()
 
         except APIClientConnectorError as ex:
-            LOGGER.error(f"Olarm API Devices error\n{ex}")
-        return {}
+            LOGGER.error("Olarm API Devices error\n%s", ex)
+            return {}
 
-    async def get_changed_by_json(self, area) -> str:
+    async def get_changed_by_json(self, area) -> dict:
         """
         DOCSTRING:\tGets the actions for a spesific device from Olarm and returns the user that last chenged the state of an Area.
         return (str):\tThe user that triggered tha last state change of an area.
@@ -59,7 +62,14 @@ class OlarmApi:
                     changes = await response.json()
                     for change in changes:
                         if (
-                            change["actionCmd"] != "zone-bypass"
+                            change["actionCmd"]
+                            not in [
+                                "zone-bypass",
+                                "pgm-open",
+                                "pgm-close",
+                                "pgm-pulse",
+                                "ukey-activate",
+                            ]
                             and int(change["actionNum"]) == int(area)
                             and return_data["actionCreated"]
                             < int(change["actionCreated"])
@@ -69,9 +79,8 @@ class OlarmApi:
                     return return_data
 
         except APIClientConnectorError as ex:
-            LOGGER.error(f"Olarm API Changed By error\n{ex}")
-
-        return "Error"
+            LOGGER.error("Olarm API Changed By error\n%s", ex)
+            return {}
 
     async def check_credentials(self) -> dict:
         """
@@ -112,7 +121,7 @@ class OlarmApi:
             )
 
         for key, value in olarm_state["power"].items():
-            if value == "1":
+            if int(value) == 1:
                 state = "on"
 
             else:
@@ -177,7 +186,7 @@ class OlarmApi:
             try:
                 if olarm_zones[area_num] == "":
                     LOGGER.debug(
-                        "This device's area names have not been set up in Olarm, generating automatically."
+                        "This device's area names have not been set up in Olarm, generating automatically"
                     )
                     olarm_zones[area_num] = f"Area {area_num}"
 
@@ -191,8 +200,8 @@ class OlarmApi:
                         ]
                     )
 
-            except APIClientConnectorError as e:
-                LOGGER.error(f"Olarm API Panel error:\n{e}")
+            except APIClientConnectorError as ex:
+                LOGGER.error("Olarm API Panel error:\n%s", ex)
 
         return self.panel_data
 
@@ -210,6 +219,12 @@ class OlarmApi:
                 pulse = pgm_setup[i][2] == "1"
                 number = i + 1
 
+                if name == "":
+                    LOGGER.debug(
+                        "PGM name not set. Generating automatically. PGM %s", number
+                    )
+                    name = f"PGM {number}"
+
                 pgms.append(
                     {
                         "name": name,
@@ -219,12 +234,15 @@ class OlarmApi:
                         "pgm_number": number,
                     }
                 )
+                return pgms
 
-            except BaseException as ex:
-                LOGGER.error(f"Olarm PGM Error:\n{ex}")
+            except APIClientConnectorError(None, None) as ex:
+                LOGGER.error("Olarm PGM Error:\n%s", ex)
                 return []
 
-        return pgms
+            except APIMethodError as ex:
+                LOGGER.error("Olarm PGM Error:\n%s", ex)
+                return []
 
     async def get_ukey_zones(self, devices_json) -> list:
         ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
@@ -238,17 +256,23 @@ class OlarmApi:
                 number = i + 1
 
                 if name == "":
-                    name == f"Ukey {number}"
+                    LOGGER.debug(
+                        "Ukey name not set. Generating automatically. Ukey %s", number
+                    )
+                    name = f"Ukey {number}"
 
                 ukeys.append({"name": name, "state": state, "ukey_number": number})
 
-            except BaseException as ex:
-                LOGGER.error(f"Olarm Ukey Error:\n{ex}")
+            except APIClientConnectorError as ex:
+                LOGGER.error("Olarm Ukey Error:\n%s", ex)
                 return []
 
         return ukeys
 
     async def get_alarm_trigger(self, devices_json) -> list:
+        """
+        DOCSTRING: Returns the data for the zones that triggered an alarm for the area.
+        """
         return devices_json["deviceState"]["areasDetail"]
 
     async def update_zone(self, post_data):
@@ -266,7 +290,12 @@ class OlarmApi:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
 
-        except APIClientConnectorError:
+        except APIClientConnectorError as ex:
+            LOGGER.error(
+                "Olarm API update zone error:\nCould not set action:\t %s due to error:\n%s",
+                post_data,
+                ex,
+            )
             return False
 
     async def update_pgm(self, pgm_data):
@@ -284,7 +313,12 @@ class OlarmApi:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
 
-        except APIClientConnectorError:
+        except APIClientConnectorError as ex:
+            LOGGER.error(
+                "Olarm API update pgm error:\nCould not set action:\t %s due to error:\n%s",
+                pgm_data,
+                ex,
+            )
             return False
 
     async def update_ukey(self, ukey_data):
@@ -302,7 +336,12 @@ class OlarmApi:
                     resp = await response.json()
                     return str(resp["actionStatus"]).lower() == "ok"
 
-        except APIClientConnectorError:
+        except APIClientConnectorError as ex:
+            LOGGER.error(
+                "Olarm API update ukey error:\nCould not set action:\t %s due to error:\n%s",
+                ukey_data,
+                ex,
+            )
             return False
 
     async def arm_area(self, a=None):

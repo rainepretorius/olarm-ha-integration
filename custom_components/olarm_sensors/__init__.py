@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import config_validation as cv
 from .coordinator import OlarmCoordinator
 from .olarm_api import OlarmApi
+import asyncio
 import voluptuous as vol
 from .const import DOMAIN, ZONE
 from homeassistant.helpers import service
@@ -43,7 +44,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         device_id=config_entry.data[CONF_DEVICE_ID],
         api_key=config_entry.data[CONF_API_KEY],
     )
-    HTTP_POST_SERVICE_SCHEMA = vol.Schema({})
 
     # Forwarding the setup for the binary sensors.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
@@ -313,5 +313,23 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
-    return True
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Handle removal of an entry."""
+    unloaded = all(
+        await asyncio.gather(
+            *[
+                hass.config_entries.async_forward_entry_unload(entry, platform)
+                for platform in PLATFORMS
+            ]
+        )
+    )
+
+    if unloaded:
+        hass.data[DOMAIN].pop(entry.entry_id)
+
+    return unloaded
+
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Reload config entry."""
+    await hass.config_entries.async_reload(entry.entry_id)

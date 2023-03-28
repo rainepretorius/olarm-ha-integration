@@ -4,10 +4,8 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from typing import Callable, Any
-import voluptuous as vol
 from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
-from homeassistant.components.alarm_control_panel import FORMAT_NUMBER
-from homeassistant.components.alarm_control_panel import FORMAT_TEXT
+from homeassistant.components.alarm_control_panel import CodeFormat
 from homeassistant.components.alarm_control_panel.const import SUPPORT_ALARM_ARM_AWAY
 from homeassistant.components.alarm_control_panel.const import SUPPORT_ALARM_ARM_HOME
 from homeassistant.components.alarm_control_panel.const import SUPPORT_ALARM_ARM_NIGHT
@@ -22,9 +20,11 @@ from .const import CONF_ALARM_CODE
 from .const import DOMAIN
 from .const import LOGGER
 from .const import AlarmPanelArea
-from .const import CONF_DEVICE_NAME, CONF_DEVICE_MODEL, CONF_DEVICE_MAKE
+from .const import VERSION
+from .const import CONF_DEVICE_NAME
+from .const import CONF_DEVICE_MAKE
 from .coordinator import OlarmCoordinator
-from .exceptions import DictionaryKeyError, ListIndexError
+from .exceptions import ListIndexError
 
 
 async def async_setup_entry(
@@ -61,7 +61,6 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     """
 
     LOGGER.debug("OlarmAlarm")
-    """Representation of an Olarm alarm status."""
 
     coordinator: OlarmCoordinator
 
@@ -97,12 +96,13 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        LOGGER.debug("OlarmAlarm.device_info")
         return {
             "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": f"Olarm Integration",
+            "manufacturer": "Olarm Integration",
             "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+            "sw_version": VERSION,
+            "hw_version": "Not Implemented",
         }
 
     @property
@@ -121,8 +121,8 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         if code is None or code == "":
             return None
         if isinstance(code, str) and re.search("^\\d+$", code):
-            return FORMAT_NUMBER
-        return FORMAT_TEXT
+            return CodeFormat
+        return CodeFormat
 
     @property
     def changed_by(self) -> str | None:
@@ -134,7 +134,22 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """Return the last change triggered by."""
         return self._last_changed
 
+    @property
+    def state_attributes(self) -> dict | None:
+        """
+        DOCSTRING: Return the state attributes.
+        """
+        return {
+            "last_changed": self._last_changed,
+            "changed_by": self._changed_by,
+            "area_trigger": self._area_trigger,
+            "last_action": self._last_action,
+        }
+
     def _validate_code(self, code_test) -> bool:
+        """
+        Should valaidate the alarm code someday.
+        """
         LOGGER.debug("OlarmAlarm._validate_code")
         code = self.code
         if code is None or code == "":
@@ -154,25 +169,39 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         return check
 
     async def async_alarm_disarm(self, code=None) -> None:
+        """
+        DOCSTRING: Send the disarm command to the api.
+        """
         if not self._validate_code(code):
             return
         LOGGER.info("OlarmAlarm.async_alarm_disarm")
-        """Send disarm command."""
         return await self.coordinator.api.disarm_area(AlarmPanelArea(self.area))
 
     async def async_alarm_arm_home(self, code=None) -> None:
+        """
+        DOCSTRING: Send the stay command to the api.
+        """
+        if not self._validate_code(code):
+            return
         LOGGER.info("OlarmAlarm.async_alarm_arm_home")
-        """Send arm home command."""
         return await self.coordinator.api.stay_area(AlarmPanelArea(self.area))
 
     async def async_alarm_arm_away(self, code=None) -> None:
+        """
+        DOCSTRING: Send the arm command to the api.
+        """
+        if not self._validate_code(code):
+            return
         LOGGER.info("OlarmAlarm.async_alarm_arm_away")
-        """Send arm away command."""
         return await self.coordinator.api.arm_area(AlarmPanelArea(self.area))
 
     async def async_alarm_arm_night(self, code=None) -> None:
+        """
+        DOCSTRING: Send the sleep command to the api.
+        """
+        if not self._validate_code(code):
+            return
         LOGGER.info("OlarmAlarm.async_alarm_arm_night")
-        """Send arm away command."""
         return await self.coordinator.api.sleep_area(AlarmPanelArea(self.area))
 
     @callback
@@ -188,40 +217,29 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         try:
             self._changed_by = self.coordinator.changed_by[self.area]
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel changed by.")
+            LOGGER.error("Could not set alarm panel changed by")
 
         try:
             self._last_changed = self.coordinator.last_changed[self.area]
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel last changed.")
+            LOGGER.error("Could not set alarm panel last changed")
 
         try:
             self._last_action = self.coordinator.last_action[self.area]
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel last action.")
+            LOGGER.error("Could not set alarm panel last action")
 
         try:
             self._area_trigger = self.coordinator.area_triggers[self.area - 1]
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel trigger.")
+            LOGGER.error("Could not set alarm panel trigger")
 
         super()._handle_coordinator_update()
 
     async def async_added_to_hass(self) -> None:
-        LOGGER.debug("OlarmAlarm.async_added_to_hass")
         """
         DOCSTRING: When entity is added to hass.
         """
+        LOGGER.debug("OlarmAlarm.async_added_to_hass")
         await super().async_added_to_hass()
         self._handle_coordinator_update()
-
-    @property
-    def state_attributes(self) -> dict | None:
-        """
-        DOCSTRING: Return the state attributes.
-        """
-        return {
-            "last_changed": self._last_changed,
-            "changed_by": self._changed_by,
-            "area_trigger": self._area_trigger,
-        }

@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
 from homeassistant.util import aiohttp
-from .const import LOGGER
+from .const import LOGGER, OLARM_CHANGE_TO_HA
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 import time
@@ -50,40 +50,46 @@ class OlarmCoordinator(DataUpdateCoordinator):
 
         return None
 
-    async def get_panel_states(self):
+    async def get_panel_states(self) -> bool:
+        """
+        DOCSTRING: Get the state of each area for the alarm panel.
+        return: Boolean
+        """
         try:
-            """
-            DOCSTRING: Get the state of each area for the alarm panel.
-            return: None
-            """
             devices_json = await self.api.get_devices_json()
             if bool(devices_json):
                 return await self.api.get_panel_states(devices_json)
             else:
-                LOGGER.warning("devices_json is empty, skipping update")
+                LOGGER.warning("Olarm error:\tdevices_json is empty, skipping update")
 
         except aiohttp.web.HTTPForbidden as ex:
             LOGGER.error("Could not log in to Olarm, %s", ex)
             return False
 
     async def update_data(self):
+        """
+        DOCSTRING: Called to update the data for the integration from Olarm's API.
+        """
         devices_json = await self.api.get_devices_json()
         if bool(devices_json):
+            # Getting the sesor states for each zone.
             self.data = await self.api.get_sensor_states(devices_json)
             self.sensor_data = self.data
+
             # Getting the Area Information
             self.panel_data = await self.api.get_panel_states(devices_json)
             self.panel_state = self.panel_data
+
             # Getting the Bypass Information
             self.bypass_data = await self.api.get_sensor_bypass_states(devices_json)
             self.bypass_state = self.bypass_data
-            # Getting the device profile
 
+            # Getting the device profile
             for i in range(devices_json["deviceProfile"]["areasLimit"]):
                 change_json = await self.api.get_changed_by_json(i + 1)
                 self.changed_by[i + 1] = change_json["userFullname"]
-                self.last_changed[i + 1] = change_json["actionCreated"]
-                self.last_action[i + 1] = change_json["actionCmd"]
+                self.last_changed[i + 1] = time.ctime(int(change_json["actionCreated"]))
+                self.last_action[i + 1] = OLARM_CHANGE_TO_HA[change_json["actionCmd"]]
 
             # Getting PGM Data
             self.pgm_data = await self.api.get_pgm_zones(devices_json)
@@ -92,6 +98,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
             # Getting alarm trigger
             self.area_triggers = await self.api.get_alarm_trigger(devices_json)
 
+            # Setting the last update success to true to show device as available.
             self.last_update_success = True
 
         else:

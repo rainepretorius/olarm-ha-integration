@@ -58,13 +58,13 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             except APIForbiddenError:
                 _LOGGER.warning(
-                    "User entered invalid credentials or API access is not enabled."
+                    "User entered invalid credentials or API access is not enabled!"
                 )
                 errors[AuthenticationError] = "Invalid credentials!"
 
             except APINotFoundError:
-                _LOGGER.warning("User entered invalid device_id.")
-                errors[DeviceIDError] = "Invalid credentials!"
+                _LOGGER.warning("User entered invalid device_id!")
+                errors[DeviceIDError] = "Invalid DEVICE ID!"
 
             # If there are errors, show the setup form with error messages
             if errors:

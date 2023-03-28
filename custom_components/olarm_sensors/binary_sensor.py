@@ -10,7 +10,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
 import datetime
-from .const import CONF_DEVICE_NAME, CONF_DEVICE_MODEL, CONF_DEVICE_MAKE, LOGGER, DOMAIN
+from .const import CONF_DEVICE_NAME
+from .const import CONF_DEVICE_MAKE
+from .const import LOGGER, DOMAIN
+from .const import VERSION
 from homeassistant.const import CONF_DEVICE_ID
 
 # from homeassistant.exceptions import *
@@ -226,12 +229,13 @@ class OlarmSensor(BinarySensorEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        LOGGER.debug("OlarmAlarm.device_info")
         return {
             "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": f"Olarm Integration",
+            "manufacturer": "Olarm Integration",
             "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+            "sw_version": VERSION,
+            "hw_version": "Not Implemented",
         }
 
     async def async_update(self):
@@ -335,12 +339,13 @@ class OlarmPanelState(BinarySensorEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        LOGGER.debug("OlarmAlarm.device_info")
         return {
             "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": f"Olarm Integration",
+            "manufacturer": "Olarm Integration",
             "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+            "sw_version": VERSION,
+            "hw_version": "Not Implemented",
         }
 
     async def async_added_to_hass(self):
@@ -445,12 +450,13 @@ class OlarmBypassSensor(BinarySensorEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        LOGGER.debug("OlarmAlarm.device_info")
         return {
             "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": f"Olarm Integration",
+            "manufacturer": "Olarm Integration",
             "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+            "sw_version": VERSION,
+            "hw_version": "Not Implemented",
         }
 
     async def async_added_to_hass(self):

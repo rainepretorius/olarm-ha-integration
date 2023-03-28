@@ -7,7 +7,6 @@ from homeassistant.const import (
     STATE_ALARM_TRIGGERED,
     STATE_ALARM_ARMED_HOME,
     STATE_ALARM_DISARMED,
-    STATE_ALARM_PENDING,
 )
 
 DOMAIN = "olarm_sensors"
@@ -35,13 +34,31 @@ ALARM_STATE_TO_HA = {
     "emergency": STATE_ALARM_TRIGGERED,
 }
 
+OLARM_CHANGE_TO_HA = {
+    "area-disarm": STATE_ALARM_DISARMED,
+    "area-stay": STATE_ALARM_ARMED_HOME,
+    "area-sleep": STATE_ALARM_ARMED_NIGHT,
+    "area-arm": STATE_ALARM_ARMED_AWAY,
+    None: None,
+}
+
+VERSION = "1.1.2"
+
 
 class AlarmPanelArea:
+    """
+    DOCSTRING: Representation of the area number
+    """
+
     area: int = 0
 
-    def __init__(self, area: int):
+    def __init__(self, area: int) -> None:
         self.area = area
+        return None
 
     @property
     def data(self):
+        """
+        DOCSTRING: Returns the area number for the api.
+        """
         return {"area": self.area}

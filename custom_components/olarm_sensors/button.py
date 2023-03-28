@@ -3,10 +3,12 @@ from .coordinator import OlarmCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .const import LOGGER as LOGGER
 from homeassistant.const import CONF_DEVICE_ID
-from .const import CONF_DEVICE_NAME, CONF_DEVICE_MODEL, CONF_DEVICE_MAKE, LOGGER, DOMAIN
-from homeassistant.const import CONF_DEVICE_ID
+from .const import CONF_DEVICE_NAME
+from .const import CONF_DEVICE_MAKE
+from .const import LOGGER
+from .const import DOMAIN
+from .const import VERSION
 
 
 async def async_setup_entry(
@@ -24,8 +26,6 @@ async def async_setup_entry(
     await coordinator.async_get_data()
 
     LOGGER.info("Setting up Olarm Sensors")
-
-    LOGGER.warn(coordinator.pgm_data)
 
     # Looping through the pgm's for the panel.
     for sensor in coordinator.pgm_data:
@@ -115,11 +115,13 @@ class PGMButtonEntity(Entity):
         else:
             return False
 
-        await self.coordinator.api.update_pgm(self.post_data)
+        ret = await self.coordinator.api.update_pgm(self.post_data)
         await self.coordinator.async_update_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_schedule_update_ha_state()
+
+        return ret
 
     async def async_turn_off(self, **kwargs):
         """Turn the custom button entity on."""
@@ -132,11 +134,13 @@ class PGMButtonEntity(Entity):
         else:
             return False
 
-        await self.coordinator.api.update_pgm(self.post_data)
+        ret = await self.coordinator.api.update_pgm(self.post_data)
         await self.coordinator.async_update_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_schedule_update_ha_state()
+
+        return ret
 
     async def async_added_to_hass(self):
         """Run when the entity is added to Home Assistant."""
@@ -144,10 +148,10 @@ class PGMButtonEntity(Entity):
 
     async def async_press(self):
         if self._state:
-            await self.async_turn_off()
+            return await self.async_turn_off()
 
         else:
-            await self.async_turn_on()
+            return await self.async_turn_on()
 
     @property
     def state(self):
@@ -157,18 +161,22 @@ class PGMButtonEntity(Entity):
         elif self._state:
             return "on"
 
+        elif not self._enabled:
+            return "disabled"
+
         else:
             return "off"
 
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        LOGGER.debug("OlarmAlarm.device_info")
         return {
             "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": f"Olarm Integration",
+            "manufacturer": "Olarm Integration",
             "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+            "sw_version": VERSION,
+            "hw_version": "Not Implemented",
         }
 
 
@@ -211,11 +219,13 @@ class UKeyButtonEntity(Entity):
         """Turn the custom button entity on."""
         self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}
 
-        await self.coordinator.api.update_ukey(self.post_data)
+        ret = await self.coordinator.api.update_ukey(self.post_data)
         await self.coordinator.async_update_data()
 
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
         self.async_schedule_update_ha_state()
+
+        return ret
 
     @property
     def state(self):
@@ -228,10 +238,11 @@ class UKeyButtonEntity(Entity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        LOGGER.debug("OlarmAlarm.device_info")
         return {
             "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": f"Olarm Integration",
+            "manufacturer": "Olarm Integration",
             "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
             "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
+            "sw_version": VERSION,
+            "hw_version": "Not Implemented",
         }
