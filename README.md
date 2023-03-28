@@ -15,7 +15,7 @@ https://apiv4.olarm.co/api/v4/devices/device_id?accessToken=api_key to raine.pre
 9.) Select the Scan Interval in seconds. This is the interval in seconds that Home Assistant will refresh the entity states.<br />
 10.) The zones will appear under the integration and under entities as binary_sensor.{zone name}. The status of each area will be alarm_control_panel.{area name}</br>
 11.) The services provided by this integration allows you to Arm, Sleep, Stay and Disarm each area individually.<br />
-12.) There are buttons to trigger utility keys and pgm zones of your alarm.
+12.) There are buttons to trigger utility keys and pgm zones of your alarm.<br />
 13.) Customize your own frontend or use the <a href="https://www.home-assistant.io/dashboards/alarm-panel/">Home Assistant Alarm Panel Card</a><br />
 <br />
 # Services</br>
