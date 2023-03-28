@@ -59,6 +59,10 @@ class OlarmApi:
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
                     headers=self.headers,
                 ) as response:
+                    if response.status == 404:
+                        LOGGER.debug("actions endpoint returned 404")
+                        return return_data
+
                     changes = await response.json()
                     for change in changes:
                         if (
