@@ -116,9 +116,14 @@ class OlarmApi:
 
             last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
 
+            if olarm_zones["zonesLabels"][zone]:
+                zone_name = olarm_zones["zonesLabels"][zone]
+            else:
+                zone_name = f"Zone {zone + 1}"
+
             self.data.append(
                 {
-                    "name": olarm_zones["zonesLabels"][zone],
+                    "name": zone_name,
                     "state": state,
                     "last_changed": last_changed,
                 }
@@ -162,9 +167,14 @@ class OlarmApi:
 
             last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
 
+            if olarm_zones["zonesLabels"][zone]:
+                zone_name = olarm_zones["zonesLabels"][zone]
+            else:
+                zone_name = f"Zone {zone + 1}"
+
             self.bypass_data.append(
                 {
-                    "name": olarm_zones["zonesLabels"][zone],
+                    "name": zone_name,
                     "state": state,
                     "last_changed": last_changed,
                 }
