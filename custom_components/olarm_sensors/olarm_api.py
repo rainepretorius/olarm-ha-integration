@@ -202,7 +202,7 @@ class OlarmApi:
                     LOGGER.debug(
                         "This device's area names have not been set up in Olarm, generating automatically"
                     )
-                    olarm_zones[area_num] = f"Area {area_num}"
+                    olarm_zones[area_num] = f"Area {area_num + 1}"
 
                 if len(olarm_state["areas"]) > area_num:
                     self.panel_data.extend(
