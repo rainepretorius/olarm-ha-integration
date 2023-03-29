@@ -59,6 +59,10 @@ class OlarmApi:
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
                     headers=self.headers,
                 ) as response:
+                    if response.status == 404:
+                        LOGGER.debug("actions endpoint returned 404")
+                        return return_data
+
                     changes = await response.json()
                     for change in changes:
                         if (
@@ -112,9 +116,14 @@ class OlarmApi:
 
             last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
 
+            if olarm_zones["zonesLabels"][zone]:
+                zone_name = olarm_zones["zonesLabels"][zone]
+            else:
+                zone_name = f"Zone {zone + 1}"
+
             self.data.append(
                 {
-                    "name": olarm_zones["zonesLabels"][zone],
+                    "name": zone_name,
                     "state": state,
                     "last_changed": last_changed,
                 }
@@ -158,9 +167,14 @@ class OlarmApi:
 
             last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
 
+            if olarm_zones["zonesLabels"][zone]:
+                zone_name = olarm_zones["zonesLabels"][zone]
+            else:
+                zone_name = f"Zone {zone + 1}"
+
             self.bypass_data.append(
                 {
-                    "name": olarm_zones["zonesLabels"][zone],
+                    "name": zone_name,
                     "state": state,
                     "last_changed": last_changed,
                 }
@@ -188,7 +202,7 @@ class OlarmApi:
                     LOGGER.debug(
                         "This device's area names have not been set up in Olarm, generating automatically"
                     )
-                    olarm_zones[area_num] = f"Area {area_num}"
+                    olarm_zones[area_num] = f"Area {area_num + 1}"
 
                 if len(olarm_state["areas"]) > area_num:
                     self.panel_data.extend(
