@@ -42,7 +42,7 @@ OLARM_CHANGE_TO_HA = {
     None: None,
 }
 
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 
 
 class AlarmPanelArea:
