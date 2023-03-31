@@ -171,7 +171,7 @@ class OlarmApi:
             last_changed = time.ctime(
                 int(olarm_state["zonesStamp"][zone]) / 1000)
 
-            if olarm_zones["zonesLabels"][zone] or olarm_zones["zonesLabels"][zone] == "":
+            if "zonesLabels" in olarm_zones and zone in olarm_zones["zonesLabels"] and olarm_zones["zonesLabels"][zone] or olarm_zones["zonesLabels"][zone] == "":
                 zone_name = olarm_zones["zonesLabels"][zone]
 
             else:
