@@ -52,7 +52,8 @@ class OlarmApi:
         DOCSTRING:\tGets the actions for a spesific device from Olarm and returns the user that last chenged the state of an Area.
         return (str):\tThe user that triggered tha last state change of an area.
         """
-        return_data = {"userFullname": "No User", "actionCreated": 0, "actionCmd": None}
+        return_data = {"userFullname": "No User",
+                       "actionCreated": 0, "actionCmd": None}
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -114,11 +115,12 @@ class OlarmApi:
             else:
                 state = "off"
 
-            last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
+            last_changed = time.ctime(
+                int(olarm_state["zonesStamp"][zone]) / 1000)
 
-            if olarm_zones["zonesLabels"][zone]:
+            if "zonesLabels" in olarm_zones and zone in olarm_zones["zonesLabels"] and (olarm_zones["zonesLabels"][zone] or olarm_zones["zonesLabels"][zone] == ""):
                 zone_name = olarm_zones["zonesLabels"][zone]
-            
+
             else:
                 zone_name = f"Zone {zone + 1}"
 
@@ -166,11 +168,12 @@ class OlarmApi:
             else:
                 state = "off"
 
-            last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
+            last_changed = time.ctime(
+                int(olarm_state["zonesStamp"][zone]) / 1000)
 
             if olarm_zones["zonesLabels"][zone] or olarm_zones["zonesLabels"][zone] == "":
                 zone_name = olarm_zones["zonesLabels"][zone]
-            
+
             else:
                 zone_name = f"Zone {zone + 1}"
 
@@ -277,7 +280,8 @@ class OlarmApi:
                     )
                     name = f"Ukey {number}"
 
-                ukeys.append({"name": name, "state": state, "ukey_number": number})
+                ukeys.append(
+                    {"name": name, "state": state, "ukey_number": number})
 
             except APIClientConnectorError as ex:
                 LOGGER.error("Olarm Ukey Error:\n%s", ex)
