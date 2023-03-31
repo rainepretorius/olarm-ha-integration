@@ -85,11 +85,11 @@ class OlarmCoordinator(DataUpdateCoordinator):
             self.bypass_state = self.bypass_data
 
             # Getting the device profile
-            # for i in range(devices_json["deviceProfile"]["areasLimit"]):
-            #     change_json = await self.api.get_changed_by_json(i + 1)
-            #     self.changed_by[i + 1] = change_json["userFullname"]
-            #     self.last_changed[i + 1] = time.ctime(int(change_json["actionCreated"]))
-            #     self.last_action[i + 1] = OLARM_CHANGE_TO_HA[change_json["actionCmd"]]
+            for i in range(devices_json["deviceProfile"]["areasLimit"]):
+                change_json = await self.api.get_changed_by_json(i + 1)
+                self.changed_by[i + 1] = change_json["userFullname"]
+                self.last_changed[i + 1] = time.ctime(int(change_json["actionCreated"]))
+                self.last_action[i + 1] = OLARM_CHANGE_TO_HA[change_json["actionCmd"]]
 
             # Getting PGM Data
             self.pgm_data = await self.api.get_pgm_zones(devices_json)
