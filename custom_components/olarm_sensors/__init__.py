@@ -313,7 +313,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         # Register the bypass service
         hass.services.async_register(
             DOMAIN,
-            "bypass_zone",
+            f"{device['deviceName']}_bypass_zone",
             OLARM_API.bypass_zone,
             vol.Schema(
                 {
