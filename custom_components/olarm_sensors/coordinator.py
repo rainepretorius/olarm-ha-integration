@@ -3,9 +3,9 @@ from datetime import timedelta
 import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
 from homeassistant.util import aiohttp
-from .const import LOGGER, OLARM_CHANGE_TO_HA
+from .const import LOGGER, OLARM_CHANGE_TO_HA, DOMAIN
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 import time
@@ -23,7 +23,14 @@ class OlarmCoordinator(DataUpdateCoordinator):
     last_changed: dict = {1: time.ctime(), 2: time.ctime()}
     last_action: dict = {1: None, 2: None}
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        device_id: str,
+        device_name: str,
+        device_make: str,
+    ) -> None:
         """
         This class handles the coordination of the Olarm integration. It fetches data for the coordinator from the Olarm API, and provides it to the binary sensors and alarm control panel.
         """
@@ -32,12 +39,10 @@ class OlarmCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name="Olarm Coordinator",
+            name=f"Olarm Coordinator ({device_id})",
             update_interval=timedelta(seconds=entry.data[CONF_SCAN_INTERVAL]),
         )
-        self.api = OlarmApi(
-            device_id=entry.data[CONF_DEVICE_ID], api_key=entry.data[CONF_API_KEY]
-        )
+        self.api = OlarmApi(device_id=device_id, api_key=entry.data[CONF_API_KEY])
         self.sensor_data = []
         self.panel_data = {}
         self.panel_state = []
@@ -45,6 +50,9 @@ class OlarmCoordinator(DataUpdateCoordinator):
         self.bypass_state = []
         self.ukey_data = []
         self.pgm_data = []
+        self.olarm_device_name = device_name
+        self.olarm_device_make = str(device_make).capitalize()
+        self.olarm_device_id = device_id
         self.area_triggers = [None, None, None, None, None, None, None, None]
         self.last_changed: dict = {1: time.ctime(), 2: time.ctime()}
 
@@ -70,6 +78,20 @@ class OlarmCoordinator(DataUpdateCoordinator):
         """
         DOCSTRING: Called to update the data for the integration from Olarm's API.
         """
+        devices = await self.api.get_all_devices()
+        for device in devices:
+            coordinator = OlarmCoordinator(
+                self.hass,
+                entry=self.entry,
+                device_id=device["deviceId"],
+                device_name=device["deviceName"],
+                device_make=device["deviceAlarmType"],
+            )
+
+            self.hass.data.setdefault(DOMAIN, {})
+            self.hass.data[DOMAIN][device["deviceId"]] = coordinator
+            self.hass.data[DOMAIN]["devices"] = devices
+
         devices_json = await self.api.get_devices_json()
         if bool(devices_json):
             # Getting the sesor states for each zone.

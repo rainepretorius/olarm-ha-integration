@@ -10,11 +10,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
 import datetime
-from .const import CONF_DEVICE_NAME
-from .const import CONF_DEVICE_MAKE
-from .const import LOGGER, DOMAIN
+from .const import LOGGER
+from .const import CONF_DEVICE_FIRMWARE
+from .const import DOMAIN
 from .const import VERSION
-from homeassistant.const import CONF_DEVICE_ID
+from .exceptions import DictionaryKeyError
 
 # from homeassistant.exceptions import *
 
@@ -28,43 +28,43 @@ async def async_setup_entry(
 
     # Defining the list to store the instances of each alarm zone.
     entities = []
+    for device in hass.data[DOMAIN]["devices"]:
+        # Creating an instance of the DataCoordinator to update the data from Olarm.
+        coordinator = hass.data[DOMAIN][device["deviceId"]]
 
-    # Creating an instance of the DataCoordinator to update the data from Olarm.
-    coordinator = OlarmCoordinator(hass, entry)
+        # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
+        await coordinator.async_get_data()
 
-    # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-    await coordinator.async_get_data()
+        LOGGER.info("Setting up Olarm Sensors")
 
-    LOGGER.info("Setting up Olarm Sensors")
+        # Looping through the sensors/zones for the panel.
+        index = 0
+        for sensor in coordinator.sensor_data:
+            # Creating a sensor for each zone on the alarm panel.
+            sensor = OlarmSensor(
+                coordinator=coordinator,
+                sensor_name=sensor["name"],
+                state=sensor["state"],
+                index=index,
+                last_changed=sensor["last_changed"],
+            )
+            index = index + 1
+            entities.append(sensor)
 
-    # Looping through the sensors/zones for the panel.
-    index = 0
-    for sensor in coordinator.sensor_data:
-        # Creating a sensor for each zone on the alarm panel.
-        sensor = OlarmSensor(
-            coordinator=coordinator,
-            sensor_name=sensor["name"],
-            state=sensor["state"],
-            index=index,
-            last_changed=sensor["last_changed"],
-        )
-        index = index + 1
-        entities.append(sensor)
+        index = 0
+        for sensor1 in coordinator.bypass_state:
+            # Creating a bypass sensor for each zone on the alarm panel.
+            sensor = OlarmBypassSensor(
+                coordinator=coordinator,
+                sensor_name=sensor1["name"],
+                state=sensor1["state"],
+                index=index,
+                last_changed=sensor1["last_changed"],
+            )
+            index = index + 1
+            entities.append(sensor)
 
-    index = 0
-    for sensor1 in coordinator.bypass_state:
-        # Creating a bypass sensor for each zone on the alarm panel.
-        sensor = OlarmBypassSensor(
-            coordinator=coordinator,
-            sensor_name=sensor1["name"],
-            state=sensor1["state"],
-            index=index,
-            last_changed=sensor1["last_changed"],
-        )
-        index = index + 1
-        entities.append(sensor)
-
-    LOGGER.info("Adding Olarm Sensors")
+        LOGGER.info("Adding Olarm Sensors")
 
     # Adding Olarm Sensors to Home Assistant
     async_add_entities(entities)
@@ -229,14 +229,25 @@ class OlarmSensor(BinarySensorEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        return {
-            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": "Olarm Integration",
-            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
-            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
-            "sw_version": VERSION,
-            "hw_version": "Not Implemented",
-        }
+        try:
+            return {
+                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+                "manufacturer": "Raine Pretorius",
+                "model": f"{self.coordinator.olarm_device_make}",
+                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+                "sw_version": VERSION,
+                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+            }
+
+        except DictionaryKeyError:
+            return {
+                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+                "manufacturer": "Raine Pretorius",
+                "model": f"{self.coordinator.olarm_device_make}",
+                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+                "sw_version": VERSION,
+                "hw_version": "Redo setup for integration",
+            }
 
     async def async_update(self):
         if self.coordinator.sensor_data[self.index][
@@ -339,14 +350,25 @@ class OlarmPanelState(BinarySensorEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        return {
-            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": "Olarm Integration",
-            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
-            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
-            "sw_version": VERSION,
-            "hw_version": "Not Implemented",
-        }
+        try:
+            return {
+                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+                "manufacturer": "Raine Pretorius",
+                "model": f"{self.coordinator.olarm_device_make}",
+                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+                "sw_version": VERSION,
+                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+            }
+
+        except DictionaryKeyError:
+            return {
+                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+                "manufacturer": "Raine Pretorius",
+                "model": f"{self.coordinator.olarm_device_make}",
+                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+                "sw_version": VERSION,
+                "hw_version": "Redo setup for integration",
+            }
 
     async def async_added_to_hass(self):
         """
@@ -450,14 +472,25 @@ class OlarmBypassSensor(BinarySensorEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        return {
-            "name": f"Olarm Sensors ({self.coordinator.entry.data[CONF_DEVICE_NAME]})",
-            "manufacturer": "Olarm Integration",
-            "model": f"{self.coordinator.entry.data[CONF_DEVICE_MAKE]}",
-            "identifiers": {(DOMAIN, self.coordinator.entry.data[CONF_DEVICE_ID])},
-            "sw_version": VERSION,
-            "hw_version": "Not Implemented",
-        }
+        try:
+            return {
+                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+                "manufacturer": "Raine Pretorius",
+                "model": f"{self.coordinator.olarm_device_make}",
+                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+                "sw_version": VERSION,
+                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+            }
+
+        except DictionaryKeyError:
+            return {
+                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+                "manufacturer": "Raine Pretorius",
+                "model": f"{self.coordinator.olarm_device_make}",
+                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+                "sw_version": VERSION,
+                "hw_version": "Redo setup for integration",
+            }
 
     async def async_added_to_hass(self):
         """

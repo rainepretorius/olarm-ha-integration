@@ -2,8 +2,8 @@ import logging
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_API_KEY, CONF_DEVICE_ID, CONF_SCAN_INTERVAL
-from .olarm_api import OlarmApi
+from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
+from .olarm_api import OlarmSetupApi
 from .const import (
     CONF_DEVICE_NAME,
     CONF_DEVICE_MAKE,
@@ -11,6 +11,7 @@ from .const import (
     AuthenticationError,
     DOMAIN,
     DeviceIDError,
+    CONF_DEVICE_FIRMWARE,
 )
 from .exceptions import APIForbiddenError, APINotFoundError
 
@@ -41,20 +42,17 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors = {}
             if not user_input[CONF_API_KEY]:
                 errors[CONF_API_KEY] = "API key is required."
-            if not user_input[CONF_DEVICE_ID]:
-                errors[CONF_DEVICE_ID] = "Device ID is required."
             if not user_input[CONF_SCAN_INTERVAL]:
                 errors[CONF_SCAN_INTERVAL] = "Scan interval is required."
             elif user_input[CONF_SCAN_INTERVAL] < 5:
                 errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 5 seconds."
 
             api_key = user_input[CONF_API_KEY]
-            device_id = user_input[CONF_DEVICE_ID]
             scan_interval = user_input[CONF_SCAN_INTERVAL]
 
             try:
-                api = OlarmApi(device_id, api_key)
-                json = await api.check_credentials()
+                api = OlarmSetupApi(api_key)
+                json = await api.get_olarm_devices()
 
             except APIForbiddenError:
                 _LOGGER.warning(
@@ -71,20 +69,16 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self._show_setup_form(errors=errors)
 
             # If there are no errors, create a config entry and return
-            device_name = json["deviceName"]
-            device_make = str(json["deviceAlarmType"]).capitalize()
-            device_model = json["deviceSerial"]
+            print(json[0])
+            firmware = json[0]["deviceFirmware"]
 
             # Saving the device
             return self.async_create_entry(
-                title=f"Olarm Sensors ({device_name})",
+                title="Olarm Sensors",
                 data={
                     CONF_API_KEY: api_key,
-                    CONF_DEVICE_ID: device_id,
                     CONF_SCAN_INTERVAL: scan_interval,
-                    CONF_DEVICE_NAME: device_name,
-                    CONF_DEVICE_MAKE: device_make,
-                    CONF_DEVICE_MODEL: device_model,
+                    CONF_DEVICE_FIRMWARE: firmware,
                 },
             )
 
@@ -100,13 +94,6 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     description={
                         "suggested_value": "Your Olarm API key",
                         "description": "API key for accessing the Olarm API. You can find your API key here: https://user.olarm.co/#/api",
-                    },
-                ): cv.string,
-                vol.Required(
-                    CONF_DEVICE_ID,
-                    description={
-                        "suggested_value": "Your Olarm device ID",
-                        "description": "ID of the Olarm device to be monitored. You can find your device ID here: https://apiv4.olarm.co/api/v4/devices/?accessToken=Your_API_KEY",
                     },
                 ): cv.string,
                 vol.Required(

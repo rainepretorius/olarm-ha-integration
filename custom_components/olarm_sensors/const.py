@@ -17,10 +17,11 @@ AuthenticationError = "invalid_credentials"
 DeviceIDError = "invalid_device_id"
 ZONE = 0
 LOGGER = logging.getLogger(__package__)
-CONF_ALARM_CODE = "alarm_code"
 CONF_DEVICE_NAME = "olarm_device_name"
 CONF_DEVICE_MAKE = "olarm_device_make"
 CONF_DEVICE_MODEL = "olarm_device_model"
+CONF_DEVICE_FIRMWARE = "olarm_device_firmware"
+CONF_ALARM_CODE = "olarm_arm_code"
 
 ALARM_STATE_TO_HA = {
     "disarm": STATE_ALARM_DISARMED,
@@ -42,7 +43,7 @@ OLARM_CHANGE_TO_HA = {
     None: None,
 }
 
-VERSION = "1.1.3"
+VERSION = "1.1.4"
 
 
 class AlarmPanelArea:
