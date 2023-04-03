@@ -7,16 +7,16 @@ https://apiv4.olarm.co/api/v4/devices/device_id?accessToken=api_key to raine.pre
 1.) Install via HACS.<br />
 2.) Restart Home Assistant.<br />
 3.) Get your Olarm API key at : https://user.olarm.co/#/api<br />
-4.) Get your device id here: https://apiv4.olarm.co/api/v4/devices?accessToken=APIKEY (Replace API key with the one from step 3).<br />
-5.) Navigate to the Devices and Services tab under Settings.<br />
-6.) Click on Add Integration.<br />
-7.) Search for Olarm Sensors<br />
-8.) Enter these details in the fields in the popup.<br />
-9.) Select the Scan Interval in seconds. This is the interval in seconds that Home Assistant will refresh the entity states.<br />
-10.) The zones will appear under the integration and under entities as binary_sensor.{zone name}. The status of each area will be alarm_control_panel.{area name}</br>
-11.) The services provided by this integration allows you to Arm, Sleep, Stay and Disarm each area individually.<br />
-12.) There are buttons to trigger utility keys and pgm zones of your alarm.
-13.) Customize your own frontend or use the <a href="https://www.home-assistant.io/dashboards/alarm-panel/">Home Assistant Alarm Panel Card</a><br />
+4.) Navigate to the Devices and Services tab under Settings.<br />
+5.) Click on Add Integration.<br />
+6.) Search for Olarm Sensors<br />
+7.) Enter these details in the fields in the popup. (Only API key is needed)<br />
+It gets all the devices assisiated with the api key automatically.<br />
+8.) Select the Scan Interval in seconds. This is the interval in seconds that Home Assistant will refresh the entity states.<br />
+9.) The zones will appear under the integration and under entities as binary_sensor.{zone name}. The status of each area will be alarm_control_panel.{area name}</br>
+10.) The services provided by this integration allows you to Arm, Sleep, Stay and Disarm each area individually.<br />
+11.) There are buttons to trigger utility keys and pgm zones of your alarm.
+12.) Customize your own frontend or use the <a href="https://www.home-assistant.io/dashboards/alarm-panel/">Home Assistant Alarm Panel Card</a><br /> or the <a href="https://github.com/piitaya/lovelace-mushroom/blob/main/docs/cards/alarm-control-panel.md"> Mushroom Alarm control panel card</a>
 <br />
 # Services</br>
 zone_1_arm:</br>

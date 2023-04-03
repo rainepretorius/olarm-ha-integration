@@ -43,7 +43,22 @@ OLARM_CHANGE_TO_HA = {
     None: None,
 }
 
-VERSION = "1.1.5"
+SERVICES_TO_YAML = {
+    "arm": {
+        "description": "Send a request to Olarm to set areanumber area to armed on alarm."
+    },
+    "sleep": {
+        "description": "Send a request to Olarm to set areanumber area to sleep on alarm."
+    },
+    "stay": {
+        "description": "Send a request to Olarm to set areanumber area to stay on alarm."
+    },
+    "disarm": {
+        "description": "Send a request to Olarm to set areanumber area to disarmed on alarm."
+    },
+}
+
+VERSION = "1.1.6"
 
 
 class AlarmPanelArea:
