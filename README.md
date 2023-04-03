@@ -1,6 +1,6 @@
 # Olarm Home Assistant Integration
 # Supported Devices
-Currrently only tested on Paradox MG505 and MG505+ alarm systems</br>
+Currrently only tested on Paradox MG5050 and MG5050+ alarm systems</br>
 If you receive an error for your panel. Please send the response of:
 https://apiv4.olarm.co/api/v4/devices/device_id?accessToken=api_key to raine.pretorius1@gmail.com or create an issue on <a href="https://github.com/rainepretorius/olarm-ha-integration/issues">Github</a>.</br>
 # Installation steps:<br />
