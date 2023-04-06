@@ -1,5 +1,4 @@
 """Module used for a GUI to configure the device"""
-import logging
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
@@ -11,10 +10,9 @@ from .const import (
     DeviceIDError,
     CONF_DEVICE_FIRMWARE,
     CONF_ALARM_CODE,
+    LOGGER
 )
 from .exceptions import APIForbiddenError, APINotFoundError
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -41,13 +39,16 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors = {}
             if not user_input[CONF_API_KEY]:
                 errors[CONF_API_KEY] = "API key is required."
+
             if not user_input[CONF_SCAN_INTERVAL]:
                 errors[CONF_SCAN_INTERVAL] = "Scan interval is required."
-            elif user_input[CONF_SCAN_INTERVAL] < 5:
-                errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 5 seconds."
+
+            elif user_input[CONF_SCAN_INTERVAL] < 1:
+                errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 1 second."
 
             api_key = user_input[CONF_API_KEY]
             scan_interval = user_input[CONF_SCAN_INTERVAL]
+
             if user_input[CONF_ALARM_CODE] == "1234567890":
                 alarm_code = None
 
@@ -59,13 +60,13 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 json = await api.get_olarm_devices()
 
             except APIForbiddenError:
-                _LOGGER.warning(
+                LOGGER.warning(
                     "User entered invalid credentials or API access is not enabled!"
                 )
                 errors[AuthenticationError] = "Invalid credentials!"
 
             except APINotFoundError:
-                _LOGGER.warning("User entered invalid device_id!")
+                LOGGER.warning("User entered invalid device_id!")
                 errors[DeviceIDError] = "Invalid DEVICE ID!"
 
             # If there are errors, show the setup form with error messages
@@ -106,7 +107,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "suggested_value": 5,
                         "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 1 second.",
                     },
-                ): vol.All(vol.Coerce(int), vol.Range(min=5)),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                 vol.Optional(
                     CONF_ALARM_CODE,
                     description={

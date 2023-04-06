@@ -11,9 +11,7 @@ from .const import VERSION
 from .exceptions import DictionaryKeyError
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Add binary sensors for Olarm alarm sensor and panel states."""
 
     # Defining the list to store the instances of each alarm zone.
@@ -62,15 +60,7 @@ async def async_setup_entry(
 class PGMButtonEntity(Entity):
     """Representation of a custom button entity."""
 
-    def __init__(
-        self,
-        coordinator: OlarmCoordinator,
-        name,
-        state,
-        enabled=True,
-        pgm_number=None,
-        pulse=False,
-    ) -> None:
+    def __init__(self, coordinator: OlarmCoordinator, name, state, enabled=True, pgm_number=None, pulse=False) -> None:
         """Initialize the custom button entity."""
         self.coordinator = coordinator
         self.sensor_name = name
@@ -81,26 +71,6 @@ class PGMButtonEntity(Entity):
         self.post_data = {}
 
         return None
-
-    @property
-    def name(self):
-        """Return the name of the custom button entity."""
-        return self.sensor_name + " (" + self.coordinator.olarm_device_name + ")"
-
-    @property
-    def unique_id(self) -> str:
-        """Return the unique ID for this entity."""
-        return self.coordinator.olarm_device_id + "_pgm_" + self.sensor_name
-
-    @property
-    def should_poll(self):
-        """Disable polling."""
-        return False
-
-    @property
-    def icon(self):
-        """Return the icon of the custom button entity."""
-        return "mdi:gesture-tap-button"
 
     async def async_turn_on(self, **kwargs):
         """Turn the custom button entity on."""
@@ -159,6 +129,26 @@ class PGMButtonEntity(Entity):
             return await self.async_turn_on()
 
     @property
+    def name(self):
+        """Return the name of the custom button entity."""
+        return self.sensor_name + " (" + self.coordinator.olarm_device_name + ")"
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID for this entity."""
+        return self.coordinator.olarm_device_id + "_pgm_" + self.sensor_name
+
+    @property
+    def should_poll(self):
+        """Disable polling."""
+        return False
+
+    @property
+    def icon(self):
+        """Return the icon of the custom button entity."""
+        return "mdi:gesture-tap-button"
+
+    @property
     def state(self):
         if self.button_enabled and self._state:
             return "on"
@@ -199,9 +189,7 @@ class PGMButtonEntity(Entity):
 class UKeyButtonEntity(Entity):
     """Representation of a custom button entity."""
 
-    def __init__(
-        self, coordinator: OlarmCoordinator, name, state, ukey_number=None
-    ) -> None:
+    def __init__(self, coordinator: OlarmCoordinator, name, state, ukey_number=None) -> None:
         """Initialize the custom button entity."""
         self.coordinator = coordinator
         self.sensor_name = name
@@ -210,27 +198,7 @@ class UKeyButtonEntity(Entity):
         self.post_data = {}
 
         return None
-
-    @property
-    def name(self):
-        """Return the name of the custom button entity."""
-        return self.sensor_name + " (" + self.coordinator.olarm_device_name + ")"
-
-    @property
-    def unique_id(self) -> str:
-        """Return the unique ID for this entity."""
-        return self.coordinator.olarm_device_id + "_ukey_" + self.sensor_name
-
-    @property
-    def should_poll(self):
-        """Disable polling."""
-        return False
-
-    @property
-    def icon(self):
-        """Return the icon of the custom button entity."""
-        return "mdi:gesture-tap-button"
-
+    
     async def async_press(self):
         """Turn the custom button entity on."""
         self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}
@@ -254,6 +222,26 @@ class UKeyButtonEntity(Entity):
         self.async_schedule_update_ha_state()
 
         return ret
+
+    @property
+    def name(self):
+        """Return the name of the custom button entity."""
+        return self.sensor_name + " (" + self.coordinator.olarm_device_name + ")"
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID for this entity."""
+        return self.coordinator.olarm_device_id + "_ukey_" + self.sensor_name
+
+    @property
+    def should_poll(self):
+        """Disable polling."""
+        return False
+
+    @property
+    def icon(self):
+        """Return the icon of the custom button entity."""
+        return "mdi:gesture-tap-button"
 
     @property
     def state(self):

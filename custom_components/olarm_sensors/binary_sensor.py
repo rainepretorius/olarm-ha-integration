@@ -16,9 +16,7 @@ from .const import OLARM_ZONE_TYPE_TO_HA
 from .exceptions import DictionaryKeyError
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Add binary sensors for Olarm alarm sensor and panel states."""
 
     # Defining the list to store the instances of each alarm zone.
@@ -104,7 +102,7 @@ class OlarmSensor(BinarySensorEntity):
 
         # Setting the type of Binarysensor
         # Motion Sensor
-        if self.type == 0:
+        if self.type == 0 or self.type == "":
             if "pir" in self.sensor_name.lower():
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
 
@@ -132,7 +130,12 @@ class OlarmSensor(BinarySensorEntity):
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
 
         else:
-            self._attr_device_class = OLARM_ZONE_TYPE_TO_HA[self.type]
+            try:
+                self._attr_device_class = OLARM_ZONE_TYPE_TO_HA[self.type]
+            
+            except DictionaryKeyError:
+                self._attr_device_class = BinarySensorDeviceClass.MOTION
+
 
         if self._attr_device_class == BinarySensorDeviceClass.MOTION:
             self.sensortypestring = "Motion Sensor"

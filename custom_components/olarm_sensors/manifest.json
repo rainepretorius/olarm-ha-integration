@@ -14,5 +14,5 @@
     "config_flow": true,
     "entrypoint": "olarm_sensors",
     "iot_class": "cloud_polling",
-    "version": "1.1.8"
+    "version": "1.1.9"
 }

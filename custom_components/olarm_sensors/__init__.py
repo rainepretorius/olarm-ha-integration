@@ -19,7 +19,7 @@ from .coordinator import OlarmCoordinator
 from .olarm_api import OlarmApi, OlarmSetupApi
 import asyncio
 import voluptuous as vol
-from .const import DOMAIN, ZONE, SERVICES_TO_YAML
+from .const import DOMAIN, SERVICES_TO_YAML, LOGGER
 from homeassistant.helpers import service
 from homeassistant.const import (
     CONF_API_KEY,
@@ -29,9 +29,8 @@ from homeassistant.const import (
 from .exceptions import ListIndexError
 import os
 
-path = os.path.abspath(__file__).replace("__init__.py", "")
 
-_LOGGER = logging.getLogger(__name__)
+path = os.path.abspath(__file__).replace("__init__.py", "")
 PLATFORMS = [ALARM_CONTROL_PANEL_DOMAIN, BINARY_SENSOR_DOMAIN, BUTTON_DOMAIN]
 
 
@@ -45,6 +44,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # Generating services file
     filedata = []
     for device in devices:
+        LOGGER.debug("Setting up device %s with device id: %s", device["deviceName"], device["deviceId"])
+        
         coordinator = OlarmCoordinator(
             hass,
             entry=config_entry,
@@ -157,6 +158,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 OLARM_API.disarm_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
+        
+        LOGGER.debug("Sett up device %s with device id: %s", device["deviceName"], device["deviceId"])
+        
 
     with open(
         file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8"
@@ -186,4 +190,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Reload config entry."""
+    await async_setup_entry(hass, config_entry)
     await hass.config_entries.async_reload(entry.entry_id)

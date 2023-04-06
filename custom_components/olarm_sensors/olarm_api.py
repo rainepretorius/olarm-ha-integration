@@ -4,6 +4,7 @@ import time
 from .const import LOGGER
 from .exceptions import (
     APIClientConnectorError,
+    ListIndexError
 )
 from datetime import datetime, timedelta
 
@@ -264,8 +265,19 @@ class OlarmApi:
         for i in range(0, pgm_limit):
             state = str(pgm_state[i]).lower() == "a"
             name = pgm_labels[i]
-            enabled = pgm_setup[i][0] == "1"
-            pulse = pgm_setup[i][2] == "1"
+            if pgm_setup[i] == "":
+                continue
+
+            try:
+                enabled = pgm_setup[i][0] == "1"
+            except ListIndexError:
+                continue
+
+            try:
+                pulse = pgm_setup[i][2] == "1"
+            except ListIndexError:
+                continue
+            
             number = i + 1
 
             if name == "":
@@ -296,7 +308,7 @@ class OlarmApi:
         ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
         ukey_state = devices_json["deviceProfile"]["ukeysControl"]
         ukeys = []
-        for i in range(ukey_limit):
+        for i in range(0, ukey_limit):
             try:
                 state = int(ukey_state[i]) == 1
                 name = ukey_labels[i]

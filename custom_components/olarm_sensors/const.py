@@ -11,12 +11,8 @@ from homeassistant.const import (
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 DOMAIN = "olarm_sensors"
-CONF_UPDATE_INTERVAL = 5
-DEFAULT_UPDATE_INTERVAL = 5
-MIN_UPDATE_INTERVAL = 5
 AuthenticationError = "invalid_credentials"
 DeviceIDError = "invalid_device_id"
-ZONE = 0
 LOGGER = logging.getLogger(__package__)
 CONF_DEVICE_NAME = "olarm_device_name"
 CONF_DEVICE_MAKE = "olarm_device_make"
@@ -45,6 +41,7 @@ OLARM_CHANGE_TO_HA = {
 }
 
 OLARM_ZONE_TYPE_TO_HA = {
+    "": BinarySensorDeviceClass.MOTION,
     0: BinarySensorDeviceClass.MOTION,
     10: BinarySensorDeviceClass.DOOR,
     11: BinarySensorDeviceClass.WINDOW,
@@ -72,7 +69,7 @@ SERVICES_TO_YAML = {
     },
 }
 
-VERSION = "1.1.8"
+VERSION = "1.1.9"
 
 
 class AlarmPanelArea:

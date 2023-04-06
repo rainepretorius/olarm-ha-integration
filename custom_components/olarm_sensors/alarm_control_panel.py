@@ -1,6 +1,5 @@
 """Support for Olarm alarm control panels."""
 from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import Callable, Any
 from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
@@ -24,11 +23,7 @@ from .coordinator import OlarmCoordinator
 from .exceptions import ListIndexError, DictionaryKeyError, CodeTypeError
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: Callable[[Iterable[Entity]], None],
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Callable[[Iterable[Entity]], None]) -> None:
     """Set up Olarm alarm control panel from a config entry."""
     LOGGER.debug("olarm_panel -> async_setup_entry")
 

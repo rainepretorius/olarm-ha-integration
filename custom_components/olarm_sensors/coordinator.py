@@ -68,6 +68,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
             devices_json = await self.api.get_devices_json()
             if bool(devices_json):
                 return await self.api.get_panel_states(devices_json)
+                
             else:
                 LOGGER.warning("Olarm error:\tdevices_json is empty, skipping update")
 
