@@ -128,16 +128,18 @@ class OlarmApi:
                 or olarm_zones["zonesLabels"][zone] == ""
             ):
                 zone_name = olarm_zones["zonesLabels"][zone]
+                zone_type = olarm_zones["zonesTypes"][zone]
 
             else:
                 zone_name = f"Zone {zone + 1}"
+                zone_type = 0
 
             self.data.append(
                 {
                     "name": zone_name,
                     "state": state,
                     "last_changed": last_changed,
-                    "type": olarm_zones["zonesTypes"][zone],
+                    "type": zone_type,
                 }
             )
 
@@ -191,7 +193,7 @@ class OlarmApi:
 
             last_changed = last_changed.strftime("%a %d %b %Y %X")
 
-            if (
+            if zone < len(olarm_zones["zonesLabels"]) and (
                 olarm_zones["zonesLabels"][zone]
                 or olarm_zones["zonesLabels"][zone] == ""
             ):
