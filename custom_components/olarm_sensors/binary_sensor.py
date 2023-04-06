@@ -170,7 +170,8 @@ class OlarmSensor(BinarySensorEntity):
         DOCSTRING: The name of the zone from the ALarm Panel
         """
         name = []
-        for item in str(self.sensor_name).lower().split(" "):
+        name1 = self.sensor_name.replace("_", " ")
+        for item in str(name1).lower().split(" "):
             name.append(str(item).capitalize())
         return " ".join(name) + " (" + self.coordinator.olarm_device_name + ")"
 
@@ -354,7 +355,8 @@ class OlarmBypassSensor(BinarySensorEntity):
         DOCSTRING: The name of the zone from the ALarm Panel
         """
         name = []
-        for item in str(self.sensor_name).lower().split(" "):
+        name1 = self.sensor_name.replace("_", " ")
+        for item in str(name1).lower().split(" "):
             name.append(str(item).capitalize())
         return " ".join(name) + " (" + self.coordinator.olarm_device_name + ")"
 
