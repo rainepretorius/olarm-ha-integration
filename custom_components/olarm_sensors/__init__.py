@@ -125,7 +125,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
             hass.services.async_register(
                 DOMAIN,
-                f"{str(device['deviceName']).lower()}_{area}_sleep",
+                f"{str(device['deviceName']).lower()}_{name}_sleep",
                 OLARM_API.sleep_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
@@ -139,7 +139,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
             hass.services.async_register(
                 DOMAIN,
-                f"{str(device['deviceName']).lower()}_{area}_stay",
+                f"{str(device['deviceName']).lower()}_{name}_stay",
                 OLARM_API.stay_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
@@ -153,7 +153,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
             hass.services.async_register(
                 DOMAIN,
-                f"{str(device['deviceName']).lower()}_{area}_disarm",
+                f"{str(device['deviceName']).lower()}_{name}_disarm",
                 OLARM_API.disarm_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
