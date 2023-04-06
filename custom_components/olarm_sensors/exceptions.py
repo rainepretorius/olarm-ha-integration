@@ -1,8 +1,15 @@
+"""Module that stores all the exceptions in Home Assistant format"""
 from aiohttp.web_exceptions import HTTPForbidden, HTTPMethodNotAllowed, HTTPNotFound
 from aiohttp import ClientConnectorError
 
 
 class ListIndexError(IndexError, BaseException):
+    def __init__(self) -> None:
+        super().__init__()
+        return None
+
+
+class CodeTypeError(TypeError, BaseException):
     def __init__(self) -> None:
         super().__init__()
         return None

@@ -1,7 +1,11 @@
+"""Module to interact with the Olarm API."""
 import aiohttp
 import time
 from .const import LOGGER
-from .exceptions import APIClientConnectorError, ListIndexError
+from .exceptions import (
+    APIClientConnectorError,
+)
+from datetime import datetime, timedelta
 
 
 class OlarmApi:
@@ -82,7 +86,7 @@ class OlarmApi:
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Changed By error\n%s", ex)
-            return {}
+            return return_data
 
     async def check_credentials(self) -> dict:
         """
@@ -106,36 +110,39 @@ class OlarmApi:
         self.data = []
 
         for zone in range(0, olarm_zones["zonesLimit"]):
-            try:
-                if str(olarm_state["zones"][zone]).lower() == "a":
-                    state = "on"
+            if str(olarm_state["zones"][zone]).lower() == "a":
+                state = "on"
 
-                else:
-                    state = "off"
+            else:
+                state = "off"
 
-                last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
+            last_changed = datetime.strptime(
+                time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
+                "%a %b  %d %X %Y",
+            ) + timedelta(hours=2)
 
-                if (
-                    olarm_zones["zonesLabels"][zone]
-                    or olarm_zones["zonesLabels"][zone] == ""
-                ):
-                    zone_name = olarm_zones["zonesLabels"][zone]
+            last_changed = last_changed.strftime("%a %d %b %Y %X")
 
-                else:
-                    zone_name = f"Zone {zone + 1}"
+            if zone < len(olarm_zones["zonesLabels"]) and (
+                olarm_zones["zonesLabels"][zone]
+                or olarm_zones["zonesLabels"][zone] == ""
+            ):
+                zone_name = olarm_zones["zonesLabels"][zone]
 
-                self.data.append(
-                    {
-                        "name": zone_name,
-                        "state": state,
-                        "last_changed": last_changed,
-                    }
-                )
+            else:
+                zone_name = f"Zone {zone + 1}"
 
-            except ListIndexError:
-                continue
+            self.data.append(
+                {
+                    "name": zone_name,
+                    "state": state,
+                    "last_changed": last_changed,
+                    "type": olarm_zones["zonesTypes"][zone],
+                }
+            )
 
         for key, value in olarm_state["power"].items():
+            sensortype = 1000
             if int(value) == 1:
                 state = "on"
 
@@ -144,9 +151,15 @@ class OlarmApi:
 
             if key == "Batt":
                 key = "Battery"
+                sensortype = 1001
 
             self.data.append(
-                {"name": f"Powered by {key}", "state": state, "last_changed": None}
+                {
+                    "name": f"Powered by {key}",
+                    "state": state,
+                    "last_changed": None,
+                    "type": sensortype,
+                }
             )
 
         return self.data
@@ -165,34 +178,35 @@ class OlarmApi:
         self.bypass_data = []
 
         for zone in range(0, olarm_zones["zonesLimit"]):
-            try:
-                if str(olarm_state["zones"][zone]).lower() == "b":
-                    state = "on"
+            if str(olarm_state["zones"][zone]).lower() == "b":
+                state = "on"
 
-                else:
-                    state = "off"
+            else:
+                state = "off"
 
-                last_changed = time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000)
+            last_changed = datetime.strptime(
+                time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
+                "%a %b  %d %X %Y",
+            ) + timedelta(hours=2)
 
-                if (
-                    olarm_zones["zonesLabels"][zone]
-                    or olarm_zones["zonesLabels"][zone] == ""
-                ):
-                    zone_name = olarm_zones["zonesLabels"][zone]
+            last_changed = last_changed.strftime("%a %d %b %Y %X")
 
-                else:
-                    zone_name = f"Zone {zone + 1}"
+            if (
+                olarm_zones["zonesLabels"][zone]
+                or olarm_zones["zonesLabels"][zone] == ""
+            ):
+                zone_name = olarm_zones["zonesLabels"][zone]
 
-                self.bypass_data.append(
-                    {
-                        "name": zone_name,
-                        "state": state,
-                        "last_changed": last_changed,
-                    }
-                )
+            else:
+                zone_name = f"Zone {zone + 1}"
 
-            except ListIndexError:
-                continue
+            self.bypass_data.append(
+                {
+                    "name": zone_name,
+                    "state": state,
+                    "last_changed": last_changed,
+                }
+            )
 
         return self.bypass_data
 
@@ -246,32 +260,28 @@ class OlarmApi:
         pgm_setup = devices_json["deviceProfile"]["pgmControl"]
         pgms = []
         for i in range(0, pgm_limit):
-            try:
-                state = str(pgm_state[i]).lower() == "a"
-                name = pgm_labels[i]
-                enabled = int(pgm_setup[i][0]) == 1
-                pulse = int(pgm_setup[i][2]) == 1
-                number = i + 1
+            state = str(pgm_state[i]).lower() == "a"
+            name = pgm_labels[i]
+            enabled = pgm_setup[i][0] == "1"
+            pulse = pgm_setup[i][2] == "1"
+            number = i + 1
 
-                if name == "":
-                    LOGGER.debug(
-                        "PGM name not set. Generating automatically. PGM %s", number
-                    )
-                    name = f"PGM {number}"
-
-                pgms.append(
-                    {
-                        "name": name,
-                        "enabled": enabled,
-                        "pulse": pulse,
-                        "state": state,
-                        "pgm_number": number,
-                    }
+            if name == "":
+                LOGGER.debug(
+                    "PGM name not set. Generating automatically. PGM %s", number
                 )
-                return pgms
+                name = f"PGM {number}"
 
-            except ListIndexError:
-                continue
+            pgms.append(
+                {
+                    "name": name,
+                    "enabled": enabled,
+                    "pulse": pulse,
+                    "state": state,
+                    "pgm_number": number,
+                }
+            )
+        return pgms
 
     async def get_ukey_zones(self, devices_json) -> list:
         """
@@ -284,7 +294,7 @@ class OlarmApi:
         ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
         ukey_state = devices_json["deviceProfile"]["ukeysControl"]
         ukeys = []
-        for i in range(0, ukey_limit):
+        for i in range(ukey_limit):
             try:
                 state = int(ukey_state[i]) == 1
                 name = ukey_labels[i]
@@ -298,8 +308,9 @@ class OlarmApi:
 
                 ukeys.append({"name": name, "state": state, "ukey_number": number})
 
-            except ListIndexError:
-                continue
+            except APIClientConnectorError as ex:
+                LOGGER.error("Olarm Ukey Error:\n%s", ex)
+                return []
 
         return ukeys
 
@@ -439,7 +450,7 @@ class OlarmApi:
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
-            return self.devices
+            return []
 
 
 class OlarmSetupApi:
@@ -468,7 +479,7 @@ class OlarmSetupApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"https://apiv4.olarm.co/api/v4/devices",
+                    "https://apiv4.olarm.co/api/v4/devices",
                     headers=self.headers,
                 ) as response:
                     olarm_resp = await response.json()

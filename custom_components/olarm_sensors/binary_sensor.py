@@ -8,17 +8,12 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-import logging
-import datetime
 from .const import LOGGER
 from .const import CONF_DEVICE_FIRMWARE
 from .const import DOMAIN
 from .const import VERSION
+from .const import OLARM_ZONE_TYPE_TO_HA
 from .exceptions import DictionaryKeyError
-
-# from homeassistant.exceptions import *
-
-LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -41,15 +36,16 @@ async def async_setup_entry(
         index = 0
         for sensor in coordinator.sensor_data:
             # Creating a sensor for each zone on the alarm panel.
-            sensor = OlarmSensor(
+            sensor1 = OlarmSensor(
                 coordinator=coordinator,
                 sensor_name=sensor["name"],
                 state=sensor["state"],
                 index=index,
                 last_changed=sensor["last_changed"],
+                sensortype=sensor["type"],
             )
             index = index + 1
-            entities.append(sensor)
+            entities.append(sensor1)
 
         index = 0
         for sensor1 in coordinator.bypass_state:
@@ -86,6 +82,7 @@ class OlarmSensor(BinarySensorEntity):
         state: str,
         index: int,
         last_changed,
+        sensortype: int,
     ) -> None:
         """
         DOCSTRING: Creates a sensor for each zone on the alarm panel.
@@ -102,40 +99,70 @@ class OlarmSensor(BinarySensorEntity):
         self._attr_is_on = self.set_state == "on"
         self.index = index
         self.last_changed = last_changed
+        self.type = sensortype
+        self.sensortypestring = "N/A"
 
         # Setting the type of Binarysensor
         # Motion Sensor
-        if "pir" in self.sensor_name.lower():
-            self._attr_device_class = BinarySensorDeviceClass.MOTION
+        if self.type == 0:
+            if "pir" in self.sensor_name.lower():
+                self._attr_device_class = BinarySensorDeviceClass.MOTION
 
-        # Window
-        elif (
-            "windows" in self.sensor_name.lower() or "wind" in self.sensor_name.lower()
-        ):
-            self._attr_device_class = BinarySensorDeviceClass.WINDOW
+            # Window
+            elif (
+                "windows" in self.sensor_name.lower()
+                or "wind" in self.sensor_name.lower()
+            ):
+                self._attr_device_class = BinarySensorDeviceClass.WINDOW
 
-        # Door
-        elif "door" in self.sensor_name.lower():
-            self._attr_device_class = BinarySensorDeviceClass.DOOR
+            # Door
+            elif "door" in self.sensor_name.lower():
+                self._attr_device_class = BinarySensorDeviceClass.DOOR
 
-        # Powered by AC
-        elif "ac" in self.sensor_name.lower():
-            self._attr_device_class = BinarySensorDeviceClass.PLUG
+            # Powered by AC
+            elif "ac" in self.sensor_name.lower():
+                self._attr_device_class = BinarySensorDeviceClass.PLUG
 
-        # Powered By Battery
-        elif "batt" in self.sensor_name.lower():
-            self._attr_device_class = BinarySensorDeviceClass.POWER
+            # Powered By Battery
+            elif "batt" in self.sensor_name.lower():
+                self._attr_device_class = BinarySensorDeviceClass.POWER
 
-        # Motion Sensor if no match.
+            # Motion Sensor if no match.
+            else:
+                self._attr_device_class = BinarySensorDeviceClass.MOTION
+
         else:
-            self._attr_device_class = BinarySensorDeviceClass.MOTION
+            self._attr_device_class = OLARM_ZONE_TYPE_TO_HA[self.type]
+
+        if self._attr_device_class == BinarySensorDeviceClass.MOTION:
+            self.sensortypestring = "Motion Sensor"
+
+        elif self._attr_device_class == BinarySensorDeviceClass.POWER:
+            self.sensortypestring = "Battery Powered"
+
+        elif self._attr_device_class == BinarySensorDeviceClass.PROBLEM:
+            self.sensortypestring = "Sensor Disabled"
+
+        elif self._attr_device_class == BinarySensorDeviceClass.DOOR:
+            self.sensortypestring = "Door Sensor"
+
+        elif self._attr_device_class == BinarySensorDeviceClass.WINDOW:
+            self.sensortypestring = "Window Sensor"
+
+        elif self._attr_device_class == BinarySensorDeviceClass.SAFETY:
+            self.sensortypestring = "Panic Button"
+
+        elif self._attr_device_class == BinarySensorDeviceClass.PLUG:
+            self.sensortypestring = "Device Power Plug Status"
 
     @property
     def unique_id(self):
         """
         DOCSTRING: The unique id for this entity sothat it can be managed from the ui.
         """
-        return f"olarm_sensor_{self.sensor_name}".replace(" ", "").lower()
+        return f"{self.coordinator.olarm_device_id}_{self.sensor_name}".replace(
+            " ", "_"
+        ).lower()
 
     @property
     def name(self):
@@ -145,7 +172,7 @@ class OlarmSensor(BinarySensorEntity):
         name = []
         for item in str(self.sensor_name).lower().split(" "):
             name.append(str(item).capitalize())
-        return " ".join(name)
+        return " ".join(name) + " (" + self.coordinator.olarm_device_name + ")"
 
     @property
     def is_on(self):
@@ -224,7 +251,11 @@ class OlarmSensor(BinarySensorEntity):
     def state_attributes(self) -> dict | None:
         """Return the state attributes."""
         self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-        return {"last_tripped_time": self.last_changed}
+        return {
+            "last_tripped_time": self.last_changed,
+            "zone_number": self.index + 1,
+            "sensor_type": self.sensortypestring,
+        }
 
     @property
     def device_info(self) -> dict:
@@ -277,108 +308,6 @@ class OlarmSensor(BinarySensorEntity):
         )
 
 
-class OlarmPanelState(BinarySensorEntity):
-    index = 0
-
-    def __init__(self, coordinator, sensor_name, state, index) -> None:
-        """
-        DOCSTRING: Creates a sensor for each zone from Olarm.
-
-        (params):
-            coordinator(OlarmCoordinator): The Data Update Coordinator.
-            sensor_name(str): The name of the zone from Olarm.
-            state(str): The state of the zone. (on or off)
-            index(int): The index in the coordinator's data list of the sensor's state.
-        """
-        self.coordinator = coordinator
-        self.sensor_name = str(sensor_name)
-        self.set_state = state
-        self._attr_is_on = self.set_state == "on"
-        self.index = index
-        self.last_changed = datetime.datetime.now()
-        self._old_state = self.set_state == "on"
-
-    @property
-    def unique_id(self):
-        """
-        DOCSTRING: The unique id for this entity sothat it can be managed from the ui.
-        """
-        return f"olarm_panel_{self.sensor_name}".replace(" ", "").lower()
-
-    @property
-    def name(self):
-        """
-        DOCSTRING: The name of the zone from Olarm
-        """
-        name = []
-        for item in str(self.sensor_name).lower().split(" "):
-            name.append(str(item).capitalize())
-        return " ".join(name)
-
-    @property
-    def is_on(self):
-        """
-        DOCSTRING: Whether the sensor/zone is active or not.
-        """
-
-        if self.coordinator.panel_state[self.index]["state"] == "on":
-            self._attr_is_on = True
-            return True
-
-        else:
-            self._attr_is_on = False
-            return False
-
-    @property
-    def icon(self):
-        """
-        DOCSTRING: Setting the icon of the entity depending on the state of the zone.
-        """
-        if self.is_on:
-            return "mdi:alarm-panel"
-
-        else:
-            return "mdi:alarm-panel-outline"
-
-    @property
-    def available(self):
-        """
-        DOCSTRING: Whether the entity is available. IE the coordinator updatees successfully.
-        """
-        return self.coordinator.last_update_success
-
-    @property
-    def device_info(self) -> dict:
-        """Return device information about this entity."""
-        try:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
-            }
-
-        except DictionaryKeyError:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": "Redo setup for integration",
-            }
-
-    async def async_added_to_hass(self):
-        """
-        DOCSTRING: Writing the state of the sensor to Home Assistant
-        """
-        self.async_on_remove(
-            self.coordinator.async_add_listener(self.async_write_ha_state)
-        )
-
-
 class OlarmBypassSensor(BinarySensorEntity):
     """
     This class represents a binary sensor entity in Home Assistant for an Olarm security zone's bypass state. It defines the sensor's state and attributes, and provides methods for updating them.
@@ -415,7 +344,9 @@ class OlarmBypassSensor(BinarySensorEntity):
         """
         DOCSTRING: The unique id for this entity sothat it can be managed from the ui.
         """
-        return f"olarm_sensor_{self.sensor_name}".replace(" ", "").lower()
+        return f"{self.coordinator.olarm_device_id}_{self.sensor_name}".replace(
+            " ", ""
+        ).lower()
 
     @property
     def name(self):
@@ -425,7 +356,7 @@ class OlarmBypassSensor(BinarySensorEntity):
         name = []
         for item in str(self.sensor_name).lower().split(" "):
             name.append(str(item).capitalize())
-        return " ".join(name)
+        return " ".join(name) + " (" + self.coordinator.olarm_device_name + ")"
 
     @property
     def is_on(self):
@@ -467,7 +398,7 @@ class OlarmBypassSensor(BinarySensorEntity):
         DOCSTRING: The last time the state of the zone/ sensor changed on Olarm's side.
         """
         self.last_changed = self.coordinator.bypass_state[self.index]["last_changed"]
-        return {"last_tripped_time": self.last_changed}
+        return {"last_tripped_time": self.last_changed, "zone_number": self.index + 1}
 
     @property
     def device_info(self) -> dict:

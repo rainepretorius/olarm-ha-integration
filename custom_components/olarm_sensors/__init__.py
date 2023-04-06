@@ -1,3 +1,4 @@
+"""Integration for Olarm Devices for Home Assistant"""
 import logging
 import requests
 from homeassistant.components.alarm_control_panel import (

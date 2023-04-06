@@ -1,5 +1,5 @@
+"""Module that stores all the constants for the integration"""
 import logging
-
 from homeassistant.const import (
     STATE_ALARM_ARMED_AWAY,
     STATE_ALARM_ARMED_NIGHT,
@@ -8,6 +8,7 @@ from homeassistant.const import (
     STATE_ALARM_ARMED_HOME,
     STATE_ALARM_DISARMED,
 )
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 DOMAIN = "olarm_sensors"
 CONF_UPDATE_INTERVAL = 5
@@ -23,7 +24,7 @@ CONF_DEVICE_MODEL = "olarm_device_model"
 CONF_DEVICE_FIRMWARE = "olarm_device_firmware"
 CONF_ALARM_CODE = "olarm_arm_code"
 
-ALARM_STATE_TO_HA = {
+OLARM_STATE_TO_HA = {
     "disarm": STATE_ALARM_DISARMED,
     "notready": STATE_ALARM_DISARMED,
     "countdown": STATE_ALARM_ARMING,
@@ -43,6 +44,19 @@ OLARM_CHANGE_TO_HA = {
     None: None,
 }
 
+OLARM_ZONE_TYPE_TO_HA = {
+    0: BinarySensorDeviceClass.MOTION,
+    10: BinarySensorDeviceClass.DOOR,
+    11: BinarySensorDeviceClass.WINDOW,
+    20: BinarySensorDeviceClass.MOTION,
+    21: BinarySensorDeviceClass.MOTION,
+    90: BinarySensorDeviceClass.PROBLEM,
+    50: BinarySensorDeviceClass.SAFETY,
+    51: BinarySensorDeviceClass.SAFETY,
+    1000: BinarySensorDeviceClass.PLUG,
+    1001: BinarySensorDeviceClass.POWER,
+}
+
 SERVICES_TO_YAML = {
     "arm": {
         "description": "Send a request to Olarm to set areanumber area to armed on alarm."
@@ -58,7 +72,7 @@ SERVICES_TO_YAML = {
     },
 }
 
-VERSION = "1.1.6"
+VERSION = "1.1.7"
 
 
 class AlarmPanelArea:

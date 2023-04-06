@@ -1,5 +1,5 @@
+"""Module that stores the Coordinator class to update the data from the api."""
 from __future__ import annotations
-from datetime import timedelta
 import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -9,6 +9,7 @@ from .const import LOGGER, OLARM_CHANGE_TO_HA, DOMAIN
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 import time
+from datetime import datetime, timedelta
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,7 +111,16 @@ class OlarmCoordinator(DataUpdateCoordinator):
             for i in range(devices_json["deviceProfile"]["areasLimit"]):
                 change_json = await self.api.get_changed_by_json(i + 1)
                 self.changed_by[i + 1] = change_json["userFullname"]
-                self.last_changed[i + 1] = time.ctime(int(change_json["actionCreated"]))
+                # Wed Apr  5 01:19:56 2023
+                self.last_changed[i + 1] = datetime.strptime(
+                    time.ctime(
+                        int(devices_json["deviceState"]["areasStamp"][i - 1] / 1000)
+                    ),
+                    "%a %b  %d %X %Y",
+                ) + timedelta(hours=2)
+                self.last_changed[i + 1] = self.last_changed[i + 1].strftime(
+                    "%a %d %b %Y %X"
+                )
                 self.last_action[i + 1] = OLARM_CHANGE_TO_HA[change_json["actionCmd"]]
 
             # Getting PGM Data

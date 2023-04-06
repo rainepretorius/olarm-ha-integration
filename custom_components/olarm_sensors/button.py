@@ -1,3 +1,4 @@
+"""Module to create and maintain binary / zone sensors for the alarm panel."""
 from homeassistant.helpers.entity import Entity
 from .coordinator import OlarmCoordinator
 from homeassistant.config_entries import ConfigEntry
@@ -28,8 +29,6 @@ async def async_setup_entry(
 
         # Looping through the pgm's for the panel.
         for sensor in coordinator.pgm_data:
-            if not sensor["enabled"]:
-                continue
             # Creating a sensor for each zone on the alarm panel.
             sensor = PGMButtonEntity(
                 coordinator=coordinator,
@@ -76,7 +75,7 @@ class PGMButtonEntity(Entity):
         self.coordinator = coordinator
         self.sensor_name = name
         self._state = state
-        self._enabled = enabled  # enabled
+        self.button_enabled = enabled  # enabled
         self._pgm_number = pgm_number
         self._pulse = pulse
         self.post_data = {}
@@ -86,7 +85,7 @@ class PGMButtonEntity(Entity):
     @property
     def name(self):
         """Return the name of the custom button entity."""
-        return self.sensor_name
+        return self.sensor_name + " (" + self.coordinator.olarm_device_name + ")"
 
     @property
     def unique_id(self) -> str:
@@ -161,13 +160,13 @@ class PGMButtonEntity(Entity):
 
     @property
     def state(self):
-        if self._enabled and self._state:
+        if self.button_enabled and self._state:
             return "on"
 
         elif self._state:
             return "on"
 
-        elif not self._enabled:
+        elif not self.button_enabled:
             return "disabled"
 
         else:
@@ -215,7 +214,7 @@ class UKeyButtonEntity(Entity):
     @property
     def name(self):
         """Return the name of the custom button entity."""
-        return self.sensor_name
+        return self.sensor_name + " (" + self.coordinator.olarm_device_name + ")"
 
     @property
     def unique_id(self) -> str:

@@ -1,3 +1,4 @@
+"""Module used for a GUI to configure the device"""
 import logging
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
@@ -5,13 +6,11 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
 from .olarm_api import OlarmSetupApi
 from .const import (
-    CONF_DEVICE_NAME,
-    CONF_DEVICE_MAKE,
-    CONF_DEVICE_MODEL,
     AuthenticationError,
     DOMAIN,
     DeviceIDError,
     CONF_DEVICE_FIRMWARE,
+    CONF_ALARM_CODE,
 )
 from .exceptions import APIForbiddenError, APINotFoundError
 
@@ -49,6 +48,11 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             api_key = user_input[CONF_API_KEY]
             scan_interval = user_input[CONF_SCAN_INTERVAL]
+            if user_input[CONF_ALARM_CODE] == "1234567890":
+                alarm_code = None
+
+            else:
+                alarm_code = user_input[CONF_ALARM_CODE]
 
             try:
                 api = OlarmSetupApi(api_key)
@@ -69,7 +73,6 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self._show_setup_form(errors=errors)
 
             # If there are no errors, create a config entry and return
-            print(json[0])
             firmware = json[0]["deviceFirmware"]
 
             # Saving the device
@@ -79,6 +82,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_API_KEY: api_key,
                     CONF_SCAN_INTERVAL: scan_interval,
                     CONF_DEVICE_FIRMWARE: firmware,
+                    CONF_ALARM_CODE: alarm_code,
                 },
             )
 
@@ -103,5 +107,12 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 1 second.",
                     },
                 ): vol.All(vol.Coerce(int), vol.Range(min=5)),
+                vol.Optional(
+                    CONF_ALARM_CODE,
+                    description={
+                        "suggested_value": "1234567890",
+                        "description": "Alarm Panel Code",
+                    },
+                ): cv.string,
             }
         )
