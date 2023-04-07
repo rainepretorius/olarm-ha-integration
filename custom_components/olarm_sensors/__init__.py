@@ -56,7 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     except DictionaryKeyError:
         data = {**config_entry.data}
         options = {**config_entry.options}
-        if options[CONF_ALARM_CODE] is not None and data[CONF_ALARM_CODE] is not None:
+        if data[CONF_ALARM_CODE] is not None:
             options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE]
         
         else:
@@ -91,6 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         hass.data[DOMAIN][device["deviceId"]] = coordinator
         hass.data[DOMAIN]["devices"] = devices
 
+        device_name_for_ha = device['deviceName'].lower().replace(" ", "_").replace(" ", "_").replace(" ", "_")
         # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
         OLARM_API = OlarmApi(
             device_id=device["deviceId"],
@@ -107,7 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         filedata = []
         filedata.append(
-            f"{str(device['deviceName']).lower()}_bypass_zone:\n  description: Send a request to Olarm to bypass the zone on {device['deviceName']}.\n  fields:\n    zone_num:\n      description: 'Zone Number'\n      example: '1'\n      required: true\n"
+            f"{device_name_for_ha}_bypass_zone:\n  description: Send a request to Olarm to bypass the zone on {device['deviceName']}.\n  fields:\n    zone_num:\n      description: 'Zone Number'\n      example: '1'\n      required: true\n"
         )
         # Registering Services
 
@@ -115,7 +116,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         # Register the bypass service
         hass.services.async_register(
             DOMAIN,
-            f"{str(device['deviceName']).lower()}_bypass_zone",
+            f"{device_name_for_ha}_bypass_zone",
             OLARM_API.bypass_zone,
             vol.Schema(
                 {
@@ -136,7 +137,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
             # Area Arming
             filedata.append(
-                f"{str(device['deviceName']).lower()}_{name}_arm:\n  description: {SERVICES_TO_YAML['arm']['description']}\n".replace(
+                f"{device_name_for_ha}_{name}_arm:\n  description: {SERVICES_TO_YAML['arm']['description']}\n".replace(
                     "areanumber", name
                 ).replace(
                     "alarm", device["deviceName"]
@@ -144,13 +145,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
             hass.services.async_register(
                 DOMAIN,
-                f"{str(device['deviceName']).lower()}_{name}_arm",
+                f"{device_name_for_ha}_{name}_arm",
                 OLARM_API.arm_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
             # Area Sleeping
             filedata.append(
-                f"{str(device['deviceName']).lower()}_{name}_sleep:\n  description: {SERVICES_TO_YAML['sleep']['description']}\n".replace(
+                f"{device_name_for_ha}_{name}_sleep:\n  description: {SERVICES_TO_YAML['sleep']['description']}\n".replace(
                     "areanumber", name
                 ).replace(
                     "alarm", device["deviceName"]
@@ -158,13 +159,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
             hass.services.async_register(
                 DOMAIN,
-                f"{str(device['deviceName']).lower()}_{name}_sleep",
+                f"{device_name_for_ha}_{name}_sleep",
                 OLARM_API.sleep_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
             # Area Staying
             filedata.append(
-                f"{str(device['deviceName']).lower()}_{name}_stay:\n  description: {SERVICES_TO_YAML['stay']['description']}\n".replace(
+                f"{device_name_for_ha}_{name}_stay:\n  description: {SERVICES_TO_YAML['stay']['description']}\n".replace(
                     "areanumber", name
                 ).replace(
                     "alarm", device["deviceName"]
@@ -172,13 +173,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
             hass.services.async_register(
                 DOMAIN,
-                f"{str(device['deviceName']).lower()}_{name}_stay",
+                f"{device_name_for_ha}_{name}_stay",
                 OLARM_API.stay_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
             # Area Disarming
             filedata.append(
-                f"{str(device['deviceName']).lower()}_{name}_disarm:\n  description: {SERVICES_TO_YAML['disarm']['description']}\n".replace(
+                f"{device_name_for_ha}_{name}_disarm:\n  description: {SERVICES_TO_YAML['disarm']['description']}\n".replace(
                     "areanumber", name
                 ).replace(
                     "alarm", device["deviceName"]
@@ -186,7 +187,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             )
             hass.services.async_register(
                 DOMAIN,
-                f"{str(device['deviceName']).lower()}_{name}_disarm",
+                f"{device_name_for_ha}_{name}_disarm",
                 OLARM_API.disarm_area,
                 schema=vol.Schema({vol.Optional("area", default=area + 1): int}),
             )
