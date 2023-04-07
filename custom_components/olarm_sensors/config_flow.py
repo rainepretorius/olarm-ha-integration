@@ -2,6 +2,7 @@
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
 from .olarm_api import OlarmSetupApi
 from .const import (
@@ -10,9 +11,10 @@ from .const import (
     DeviceIDError,
     CONF_DEVICE_FIRMWARE,
     CONF_ALARM_CODE,
-    LOGGER
+    LOGGER,
 )
 from .exceptions import APIForbiddenError, APINotFoundError
+from typing import Any
 
 
 class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -96,6 +98,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(
                     CONF_API_KEY,
+                    msg="The api key for your account.",
                     description={
                         "suggested_value": "Your Olarm API key",
                         "description": "API key for accessing the Olarm API. You can find your API key here: https://user.olarm.co/#/api",
@@ -103,6 +106,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): cv.string,
                 vol.Required(
                     CONF_SCAN_INTERVAL,
+                    msg="The update interval in seconds.",
                     description={
                         "suggested_value": 5,
                         "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 1 second.",
@@ -110,10 +114,81 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                 vol.Optional(
                     CONF_ALARM_CODE,
+                    msg="The code for alarm actions. Leave default for no code.",
                     description={
                         "suggested_value": "1234567890",
                         "description": "Alarm Panel Code",
                     },
                 ): cv.string,
             }
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Create the options flow."""
+        return OlarmOptionsFlow(config_entry)
+
+
+class OlarmOptionsFlow(config_entries.OptionsFlow):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    def _get_schema(self):
+        """Return the data schema for the user form."""
+        if self.config_entry.data[CONF_ALARM_CODE] is None:
+            alarm_code = "1234567890"
+
+        else:
+            alarm_code = self.config_entry.data[CONF_ALARM_CODE]
+        return vol.Schema(
+            {
+                vol.Required(
+                    CONF_API_KEY,
+                    msg="The api key for your account.",
+                    description={
+                        "suggested_value": self.config_entry.data[CONF_API_KEY],
+                        "description": "API key for accessing the Olarm API. You can find your API key here: https://user.olarm.co/#/api",
+                    },
+                ): cv.string,
+                vol.Required(
+                    CONF_SCAN_INTERVAL,
+                    msg="The update interval in seconds.",
+                    description={
+                        "suggested_value": self.config_entry.data[CONF_SCAN_INTERVAL],
+                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 1 second.",
+                    },
+                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                vol.Optional(
+                    CONF_ALARM_CODE,
+                    msg="The code for alarm actions. Leave default for no code.",
+                    description={
+                        "suggested_value": alarm_code,
+                        "description": "Alarm Panel Code",
+                    },
+                ): cv.string,
+            }
+        )
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+        """Manage the options."""
+        if user_input is not None:
+            if user_input[CONF_ALARM_CODE] == "1234567890":
+                alarm_code = None
+
+            else:
+                alarm_code = user_input[CONF_ALARM_CODE]
+
+            new = {**self.config_entry.data}
+
+            new[CONF_ALARM_CODE] = alarm_code
+
+            return self.async_create_entry(title="Olarm Sensors", data=new)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self._get_schema(),
         )

@@ -2,10 +2,7 @@
 import aiohttp
 import time
 from .const import LOGGER
-from .exceptions import (
-    APIClientConnectorError,
-    ListIndexError
-)
+from .exceptions import APIClientConnectorError, ListIndexError
 from datetime import datetime, timedelta
 
 
@@ -277,7 +274,7 @@ class OlarmApi:
                 pulse = pgm_setup[i][2] == "1"
             except ListIndexError:
                 continue
-            
+
             number = i + 1
 
             if name == "":

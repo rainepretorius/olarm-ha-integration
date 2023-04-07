@@ -15,7 +15,7 @@ class CodeTypeError(TypeError, BaseException):
         return None
 
 
-class DictionaryKeyError(IndexError, BaseException):
+class DictionaryKeyError(KeyError, BaseException):
     def __init__(self) -> None:
         super().__init__()
         return None

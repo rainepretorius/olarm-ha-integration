@@ -11,7 +11,9 @@ from .const import VERSION
 from .exceptions import DictionaryKeyError
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Add binary sensors for Olarm alarm sensor and panel states."""
 
     # Defining the list to store the instances of each alarm zone.
@@ -60,7 +62,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class PGMButtonEntity(Entity):
     """Representation of a custom button entity."""
 
-    def __init__(self, coordinator: OlarmCoordinator, name, state, enabled=True, pgm_number=None, pulse=False) -> None:
+    def __init__(
+        self,
+        coordinator: OlarmCoordinator,
+        name,
+        state,
+        enabled=True,
+        pgm_number=None,
+        pulse=False,
+    ) -> None:
         """Initialize the custom button entity."""
         self.coordinator = coordinator
         self.sensor_name = name
@@ -189,7 +199,9 @@ class PGMButtonEntity(Entity):
 class UKeyButtonEntity(Entity):
     """Representation of a custom button entity."""
 
-    def __init__(self, coordinator: OlarmCoordinator, name, state, ukey_number=None) -> None:
+    def __init__(
+        self, coordinator: OlarmCoordinator, name, state, ukey_number=None
+    ) -> None:
         """Initialize the custom button entity."""
         self.coordinator = coordinator
         self.sensor_name = name
@@ -198,7 +210,7 @@ class UKeyButtonEntity(Entity):
         self.post_data = {}
 
         return None
-    
+
     async def async_press(self):
         """Turn the custom button entity on."""
         self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}

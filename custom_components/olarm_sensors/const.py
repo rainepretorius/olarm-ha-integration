@@ -10,6 +10,9 @@ from homeassistant.const import (
 )
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
+
+VERSION = "2.0.0"
+
 DOMAIN = "olarm_sensors"
 AuthenticationError = "invalid_credentials"
 DeviceIDError = "invalid_device_id"
@@ -68,8 +71,6 @@ SERVICES_TO_YAML = {
         "description": "Send a request to Olarm to set areanumber area to disarmed on alarm."
     },
 }
-
-VERSION = "1.1.9"
 
 
 class AlarmPanelArea:
