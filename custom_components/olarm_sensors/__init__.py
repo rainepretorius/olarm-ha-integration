@@ -53,7 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 config_entry, data=data, options=options
             )
 
-    except DictionaryKeyError:
+    except KeyError:
         data = {**config_entry.data}
         options = {**config_entry.options}
         options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE]
