@@ -56,7 +56,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     except DictionaryKeyError:
         data = {**config_entry.data}
         options = {**config_entry.options}
-        options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE]
+        if options[CONF_ALARM_CODE] is not None and data[CONF_ALARM_CODE] is not None:
+            options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE]
+        
+        else:
+            options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE] = None
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
