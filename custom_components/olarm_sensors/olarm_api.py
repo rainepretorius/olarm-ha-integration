@@ -2,7 +2,7 @@
 import aiohttp
 import time
 from .const import LOGGER
-from .exceptions import APIClientConnectorError, ListIndexError
+from .exceptions import APIClientConnectorError, ListIndexError, DictionaryKeyError
 from datetime import datetime, timedelta
 
 
@@ -107,62 +107,67 @@ class OlarmApi:
 
         self.data = []
 
-        for zone in range(0, olarm_zones["zonesLimit"]):
-            if str(olarm_state["zones"][zone]).lower() == "a":
-                state = "on"
+        try:
+            for zone in range(0, olarm_zones["zonesLimit"]):
+                if str(olarm_state["zones"][zone]).lower() == "a":
+                    state = "on"
 
-            else:
-                state = "off"
+                else:
+                    state = "off"
 
-            last_changed = datetime.strptime(
-                time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
-                "%a %b  %d %X %Y",
-            ) + timedelta(hours=2)
+                last_changed = datetime.strptime(
+                    time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
+                    "%a %b  %d %X %Y",
+                ) + timedelta(hours=2)
 
-            last_changed = last_changed.strftime("%a %d %b %Y %X")
+                last_changed = last_changed.strftime("%a %d %b %Y %X")
 
-            if (zone < len(olarm_zones["zonesLabels"])
-                and olarm_zones["zonesLabels"][zone]
-                and olarm_zones["zonesLabels"][zone].strip() != ""
-            ):
-                zone_name = olarm_zones["zonesLabels"][zone]
-                zone_type = olarm_zones["zonesTypes"][zone]
+                if zone < len(olarm_zones["zonesLabels"]) and (
+                    olarm_zones["zonesLabels"][zone]
+                    or olarm_zones["zonesLabels"][zone] == ""
+                ):
+                    zone_name = olarm_zones["zonesLabels"][zone]
+                    zone_type = olarm_zones["zonesTypes"][zone]
 
-            else:
-                zone_name = f"Zone {zone + 1}"
-                zone_type = 0
+                else:
+                    zone_name = f"Zone {zone + 1}"
+                    zone_type = 0
 
-            self.data.append(
-                {
-                    "name": zone_name,
-                    "state": state,
-                    "last_changed": last_changed,
-                    "type": zone_type,
-                }
-            )
+                self.data.append(
+                    {
+                        "name": zone_name,
+                        "state": state,
+                        "last_changed": last_changed,
+                        "type": zone_type,
+                    }
+                )
 
-        for key, value in olarm_state["power"].items():
-            sensortype = 1000
-            if int(value) == 1:
-                state = "on"
+            for key, value in olarm_state["power"].items():
+                sensortype = 1000
+                if int(value) == 1:
+                    state = "on"
 
-            else:
-                state = "off"
+                else:
+                    state = "off"
 
-            if key == "Batt":
-                key = "Battery"
-                sensortype = 1001
+                if key == "Batt":
+                    key = "Battery"
+                    sensortype = 1001
 
-            self.data.append(
-                {
-                    "name": f"Powered by {key}",
-                    "state": state,
-                    "last_changed": None,
-                    "type": sensortype,
-                }
-            )
+                self.data.append(
+                    {
+                        "name": f"Powered by {key}",
+                        "state": state,
+                        "last_changed": None,
+                        "type": sensortype,
+                    }
+                )
 
-        return self.data
+            return self.data
+
+        except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
+            LOGGER.error("Olarm Bypass sensors error:\n%s", ex)
+            return self.data
 
     async def get_sensor_bypass_states(self, devices_json) -> list:
         """
@@ -176,39 +181,43 @@ class OlarmApi:
         olarm_zones = devices_json["deviceProfile"]
 
         self.bypass_data = []
+        try:
+            for zone in range(0, olarm_zones["zonesLimit"]):
+                if str(olarm_state["zones"][zone]).lower() == "b":
+                    state = "on"
 
-        for zone in range(0, olarm_zones["zonesLimit"]):
-            if str(olarm_state["zones"][zone]).lower() == "b":
-                state = "on"
+                else:
+                    state = "off"
 
-            else:
-                state = "off"
+                last_changed = datetime.strptime(
+                    time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
+                    "%a %b  %d %X %Y",
+                ) + timedelta(hours=2)
 
-            last_changed = datetime.strptime(
-                time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
-                "%a %b  %d %X %Y",
-            ) + timedelta(hours=2)
+                last_changed = last_changed.strftime("%a %d %b %Y %X")
 
-            last_changed = last_changed.strftime("%a %d %b %Y %X")
+                if zone < len(olarm_zones["zonesLabels"]) and (
+                    olarm_zones["zonesLabels"][zone]
+                    or olarm_zones["zonesLabels"][zone] == ""
+                ):
+                    zone_name = olarm_zones["zonesLabels"][zone]
 
-            if (zone < len(olarm_zones["zonesLabels"])
-                and olarm_zones["zonesLabels"][zone]
-                and olarm_zones["zonesLabels"][zone].strip() != ""
-            ):
-                zone_name = olarm_zones["zonesLabels"][zone]
+                else:
+                    zone_name = f"Zone {zone + 1}"
 
-            else:
-                zone_name = f"Zone {zone + 1}"
+                self.bypass_data.append(
+                    {
+                        "name": zone_name,
+                        "state": state,
+                        "last_changed": last_changed,
+                    }
+                )
 
-            self.bypass_data.append(
-                {
-                    "name": zone_name,
-                    "state": state,
-                    "last_changed": last_changed,
-                }
-            )
+            return self.bypass_data
 
-        return self.bypass_data
+        except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
+            LOGGER.error("Olarm Bypass sensors error:\n%s", ex)
+            return self.bypass_data
 
     async def get_panel_states(self, devices_json) -> list:
         """
@@ -242,7 +251,7 @@ class OlarmApi:
                         ]
                     )
 
-            except APIClientConnectorError as ex:
+            except (DictionaryKeyError, KeyError) as ex:
                 LOGGER.error("Olarm API Panel error:\n%s", ex)
 
         return self.panel_data
@@ -259,40 +268,45 @@ class OlarmApi:
         pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
         pgm_setup = devices_json["deviceProfile"]["pgmControl"]
         pgms = []
-        for i in range(0, pgm_limit):
-            state = str(pgm_state[i]).lower() == "a"
-            name = pgm_labels[i]
-            if pgm_setup[i] == "":
-                continue
+        try:
+            for i in range(0, pgm_limit):
+                state = str(pgm_state[i]).lower() == "a"
+                name = pgm_labels[i]
+                if pgm_setup[i] == "":
+                    continue
 
-            try:
-                enabled = pgm_setup[i][0] == "1"
-            except ListIndexError:
-                continue
+                try:
+                    enabled = pgm_setup[i][0] == "1"
+                except ListIndexError:
+                    continue
 
-            try:
-                pulse = pgm_setup[i][2] == "1"
-            except ListIndexError:
-                continue
+                try:
+                    pulse = pgm_setup[i][2] == "1"
+                except ListIndexError:
+                    continue
 
-            number = i + 1
+                number = i + 1
 
-            if name == "":
-                LOGGER.debug(
-                    "PGM name not set. Generating automatically. PGM %s", number
+                if name == "":
+                    LOGGER.debug(
+                        "PGM name not set. Generating automatically. PGM %s", number
+                    )
+                    name = f"PGM {number}"
+
+                pgms.append(
+                    {
+                        "name": name,
+                        "enabled": enabled,
+                        "pulse": pulse,
+                        "state": state,
+                        "pgm_number": number,
+                    }
                 )
-                name = f"PGM {number}"
+            return pgms
 
-            pgms.append(
-                {
-                    "name": name,
-                    "enabled": enabled,
-                    "pulse": pulse,
-                    "state": state,
-                    "pgm_number": number,
-                }
-            )
-        return pgms
+        except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
+            LOGGER.error("Olarm PGM Error:\n%s", ex)
+            return pgms
 
     async def get_ukey_zones(self, devices_json) -> list:
         """
@@ -305,25 +319,29 @@ class OlarmApi:
         ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
         ukey_state = devices_json["deviceProfile"]["ukeysControl"]
         ukeys = []
-        for i in range(0, ukey_limit):
-            try:
-                state = int(ukey_state[i]) == 1
-                name = ukey_labels[i]
-                number = i + 1
+        try:
+            for i in range(0, ukey_limit):
+                try:
+                    state = int(ukey_state[i]) == 1
+                    name = ukey_labels[i]
+                    number = i + 1
 
-                if name == "":
-                    LOGGER.debug(
-                        "Ukey name not set. Generating automatically. Ukey %s", number
-                    )
-                    name = f"Ukey {number}"
+                    if name == "":
+                        LOGGER.debug(
+                            "Ukey name not set. Generating automatically. Ukey %s", number
+                        )
+                        name = f"Ukey {number}"
 
-                ukeys.append({"name": name, "state": state, "ukey_number": number})
+                    ukeys.append({"name": name, "state": state, "ukey_number": number})
 
-            except APIClientConnectorError as ex:
-                LOGGER.error("Olarm Ukey Error:\n%s", ex)
-                return []
+                except (DictionaryKeyError, KeyError) as ex:
+                    LOGGER.error("Olarm Ukey Error:\n%s", ex)
+                    return []
 
-        return ukeys
+            return ukeys
+
+        except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
+            LOGGER.error("Olarm Ukey error:\n%s", ex)
 
     async def get_alarm_trigger(self, devices_json) -> list:
         """

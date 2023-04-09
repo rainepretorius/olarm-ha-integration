@@ -14,13 +14,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import config_validation as cv
 from .coordinator import OlarmCoordinator
 from .olarm_api import OlarmApi, OlarmSetupApi
 import asyncio
 import voluptuous as vol
 from .const import DOMAIN, SERVICES_TO_YAML, LOGGER, CONF_ALARM_CODE
-from homeassistant.helpers import service
+from homeassistant.helpers import service, config_validation as cv
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_DEVICE_ID,
@@ -58,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         options = {**config_entry.options}
         if data[CONF_ALARM_CODE] is not None:
             options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE]
-        
+
         else:
             options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE] = None
 
@@ -68,6 +67,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
     devices = await setup_api.get_olarm_devices()
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN]["devices"] = devices
 
     # Generating services file
     filedata = []
@@ -86,12 +87,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device_make=device["deviceAlarmType"],
         )
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][config_entry.entry_id] = coordinator
         hass.data[DOMAIN][device["deviceId"]] = coordinator
-        hass.data[DOMAIN]["devices"] = devices
 
-        device_name_for_ha = device['deviceName'].lower().replace(" ", "_").replace(" ", "_").replace(" ", "_")
+        device_name_for_ha = (
+            device["deviceName"]
+            .lower()
+            .replace(" ", "_")
+            .replace(" ", "_")
+            .replace(" ", "_")
+        )
         # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
         OLARM_API = OlarmApi(
             device_id=device["deviceId"],
@@ -230,7 +234,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def update_listener(hass, entry):
+async def update_listener(hass: HomeAssistant, entry):
     """Handle options update."""
     try:
         if not entry.options[CONF_ALARM_CODE] == entry.data[CONF_ALARM_CODE]:
@@ -242,7 +246,7 @@ async def update_listener(hass, entry):
 
             hass.config_entries.async_update_entry(entry, data=data, options=options)
 
-    except DictionaryKeyError:
+    except (DictionaryKeyError, KeyError):
         data = {**entry.data}
         options = {**entry.options}
         options[CONF_ALARM_CODE] = data[CONF_ALARM_CODE]

@@ -11,8 +11,6 @@ from homeassistant.config_entries import ConfigEntry
 import time
 from datetime import datetime, timedelta
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class OlarmCoordinator(DataUpdateCoordinator):
     """
@@ -39,7 +37,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
 
         super().__init__(
             hass,
-            _LOGGER,
+            LOGGER,
             name=f"Olarm Coordinator ({device_id})",
             update_interval=timedelta(seconds=entry.data[CONF_SCAN_INTERVAL]),
         )
@@ -141,10 +139,6 @@ class OlarmCoordinator(DataUpdateCoordinator):
         return self.last_update_success
 
     async def _async_update_data(self):
-        """Update data via Olarm's API"""
-        return await self.update_data()
-
-    async def async_update_data(self):
         """Update data via Olarm's API"""
         return await self.update_data()
 
