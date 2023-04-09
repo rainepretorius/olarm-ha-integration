@@ -121,9 +121,9 @@ class OlarmApi:
 
             last_changed = last_changed.strftime("%a %d %b %Y %X")
 
-            if zone < len(olarm_zones["zonesLabels"]) and (
-                olarm_zones["zonesLabels"][zone]
-                or olarm_zones["zonesLabels"][zone] == ""
+            if (zone < len(olarm_zones["zonesLabels"])
+                and olarm_zones["zonesLabels"][zone]
+                and olarm_zones["zonesLabels"][zone].strip() != ""
             ):
                 zone_name = olarm_zones["zonesLabels"][zone]
                 zone_type = olarm_zones["zonesTypes"][zone]
@@ -191,9 +191,9 @@ class OlarmApi:
 
             last_changed = last_changed.strftime("%a %d %b %Y %X")
 
-            if zone < len(olarm_zones["zonesLabels"]) and (
-                olarm_zones["zonesLabels"][zone]
-                or olarm_zones["zonesLabels"][zone] == ""
+            if (zone < len(olarm_zones["zonesLabels"])
+                and olarm_zones["zonesLabels"][zone]
+                and olarm_zones["zonesLabels"][zone].strip() != ""
             ):
                 zone_name = olarm_zones["zonesLabels"][zone]
 
