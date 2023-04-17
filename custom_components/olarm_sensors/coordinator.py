@@ -10,6 +10,7 @@ from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 import time
 from datetime import datetime, timedelta
+from .exceptions import ListIndexError
 
 
 class OlarmCoordinator(DataUpdateCoordinator):
@@ -106,21 +107,25 @@ class OlarmCoordinator(DataUpdateCoordinator):
             self.bypass_data = await self.api.get_sensor_bypass_states(devices_json)
             self.bypass_state = self.bypass_data
 
-            # Getting the device profile
-            for i in range(devices_json["deviceProfile"]["areasLimit"]):
-                change_json = await self.api.get_changed_by_json(i + 1)
-                self.changed_by[i + 1] = change_json["userFullname"]
-                # Wed Apr  5 01:19:56 2023
-                self.last_changed[i + 1] = datetime.strptime(
-                    time.ctime(
-                        int(devices_json["deviceState"]["areasStamp"][i - 1] / 1000)
-                    ),
-                    "%a %b  %d %X %Y",
-                ) + timedelta(hours=2)
-                self.last_changed[i + 1] = self.last_changed[i + 1].strftime(
-                    "%a %d %b %Y %X"
-                )
-                self.last_action[i + 1] = OLARM_CHANGE_TO_HA[change_json["actionCmd"]]
+            try:
+                # Getting the device profile
+                for i in range(devices_json["deviceProfile"]["areasLimit"]):
+                    change_json = await self.api.get_changed_by_json(i + 1)
+                    self.changed_by[i + 1] = change_json["userFullname"]
+                    # Wed Apr  5 01:19:56 2023
+                    self.last_changed[i + 1] = datetime.strptime(
+                        time.ctime(
+                            int(devices_json["deviceState"]["areasStamp"][i - 1] / 1000)
+                        ),
+                        "%a %b  %d %X %Y",
+                    ) + timedelta(hours=2)
+                    self.last_changed[i + 1] = self.last_changed[i + 1].strftime(
+                        "%a %d %b %Y %X"
+                    )
+                    self.last_action[i + 1] = OLARM_CHANGE_TO_HA[change_json["actionCmd"]]
+            
+            except ListIndexError:
+                LOGGER.warning("The area settings in the Olarm App is incorrect. It is currently %s and needs to be %s", devices_json["deviceProfile"]["areasLimit"], len(devices_json["deviceState"]["areasStamp"]))
 
             # Getting PGM Data
             self.pgm_data = await self.api.get_pgm_zones(devices_json)
