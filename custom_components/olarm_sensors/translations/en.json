@@ -8,8 +8,8 @@
                 "description": "This integration uses the Olarm API (https://user.olarm.co/#/api) to control your Olarm Devices. Please enter your API key to continue:",
                 "data": {
                     "api_key": "Olarm API key to connect to Olarm's API.",
-                    "scan_period": "The interval in seconds to update the data for the sensors and areas.",
-                    "olarm_arm_code": "The code used to authenticate the actions of the device."
+                    "scan_interval": "The interval in seconds to update the sensors and areas.",
+                    "olarm_arm_code": "The code for alarm actions. Leave default for no code."
                 }
             }
         }
@@ -23,8 +23,8 @@
                 "description": "This integration uses the Olarm API (https://user.olarm.co/#/api) to control your Olarm Devices. Please enter your API key to continue:",
                 "data": {
                     "api_key": "Olarm API key to connect to Olarm's API.",
-                    "scan_period": "The interval in seconds to update the data for the sensors and areas.",
-                    "olarm_arm_code": "The code used to authenticate the actions of the device."
+                    "scan_interval": "The interval in seconds to update the sensors and areas.",
+                    "olarm_arm_code": "The code for alarm actions. Leave default for no code."
                 }
             }
         }
