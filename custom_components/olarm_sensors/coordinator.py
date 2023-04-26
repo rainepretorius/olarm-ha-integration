@@ -42,7 +42,11 @@ class OlarmCoordinator(DataUpdateCoordinator):
             name=f"Olarm Coordinator ({device_id})",
             update_interval=timedelta(seconds=entry.data[CONF_SCAN_INTERVAL]),
         )
+
+        # Instansiating a local instance of the Olarm API
         self.api = OlarmApi(device_id=device_id, api_key=entry.data[CONF_API_KEY])
+
+        # Setting the nessecary class variables and lists.
         self.sensor_data = []
         self.panel_data = {}
         self.panel_state = []
@@ -50,10 +54,12 @@ class OlarmCoordinator(DataUpdateCoordinator):
         self.bypass_state = []
         self.ukey_data = []
         self.pgm_data = []
+        self.area_triggers = [None, None, None, None, None, None, None, None]
+
+        # Setting the device info.
         self.olarm_device_name = device_name
         self.olarm_device_make = str(device_make).capitalize()
         self.olarm_device_id = device_id
-        self.area_triggers = [None, None, None, None, None, None, None, None]
         self.last_changed: dict = {1: time.ctime(), 2: time.ctime()}
 
         return None
@@ -125,7 +131,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
                     self.last_action[i + 1] = OLARM_CHANGE_TO_HA[change_json["actionCmd"]]
             
             except ListIndexError:
-                LOGGER.warning("The area settings in the Olarm App is incorrect. It is currently %s and needs to be %s", devices_json["deviceProfile"]["areasLimit"], len(devices_json["deviceState"]["areasStamp"]))
+                LOGGER.warning("The area settings in the Olarm App is incorrect. It is currently set to %s and needs to be set to %s for device: (%s)", devices_json["deviceProfile"]["areasLimit"], len(devices_json["deviceState"]["areasStamp"]), self.olarm_device_name)
 
             # Getting PGM Data
             self.pgm_data = await self.api.get_pgm_zones(devices_json)

@@ -27,18 +27,20 @@ async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: Callable[[Iterable[Entity]], None],
-) -> None:
+    ) -> None:
     """Set up Olarm alarm control panel from a config entry."""
-    LOGGER.debug("olarm_panel -> async_setup_entry")
+    LOGGER.debug("""Set up Olarm alarm control panel from the config entry.""")
 
     entities = []
     for device in hass.data[DOMAIN]["devices"]:
+        LOGGER.debug("Setting up area (%s) for device (%s)")
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
         panel_states = await coordinator.get_panel_states()
 
         area = 1
         for sensor in panel_states:
+            LOGGER.debug("Setting up area (%s) for device (%s)", sensor['name'], device['deviceName'])
             sensor = OlarmAlarm(
                 coordinator=coordinator,
                 sensor_name=sensor["name"],
@@ -56,8 +58,6 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     This class represents an alarm control panel entity in Home Assistant for an Olarm security zone. It defines the panel's state and attributes, and provides methods for updating them.
     """
 
-    LOGGER.debug("OlarmAlarm")
-
     coordinator: OlarmCoordinator
 
     _changed_by: str | None = None
@@ -70,7 +70,8 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     def __init__(self, coordinator, sensor_name, state, area) -> None:
         """Initialize the Olarm Alarm Control Panel."""
         LOGGER.debug(
-            "Initiating Olarm Alarm Panel for %s",
+            "Initiating Olarm Alarm Control Panel for area (%s) device (%s)",
+            sensor_name,
             coordinator.olarm_device_name,
         )
         super().__init__(coordinator)
@@ -180,6 +181,8 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
             "last_action": self._last_action,
             "code_required": self.code_arm_required,
             "code_format": self.code_format,
+            "area_name": self.sensor_name,
+            "area_number": self.area
         }
 
     async def async_alarm_disarm(self, code=None) -> None:

@@ -74,7 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     filedata = []
     for device in devices:
         LOGGER.debug(
-            "Setting up device %s with device id: %s",
+            "Setting up Olarm device (%s) with device id: %s",
             device["deviceName"],
             device["deviceId"],
         )
@@ -128,6 +128,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 }
             ),
         )
+
+        # Setting services for each area
         for area in range(0, max_areas):
             try:
                 name = areas[area]

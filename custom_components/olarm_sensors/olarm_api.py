@@ -277,11 +277,13 @@ class OlarmApi:
 
                 try:
                     enabled = pgm_setup[i][0] == "1"
+
                 except ListIndexError:
                     continue
 
                 try:
                     pulse = pgm_setup[i][2] == "1"
+
                 except ListIndexError:
                     continue
 
@@ -305,7 +307,7 @@ class OlarmApi:
             return pgms
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm PGM Error:\n%s", ex)
+            LOGGER.warning("Olarm PGM warning:\n%s\nIt looks like you have more pgm's set up in the app than the alarm panel supports.", ex)
             return pgms
 
     async def get_ukey_zones(self, devices_json) -> list:

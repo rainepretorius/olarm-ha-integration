@@ -9,6 +9,7 @@ from .const import LOGGER
 from .const import DOMAIN
 from .const import VERSION
 from .exceptions import DictionaryKeyError
+from homeassistant.core import callback
 
 
 async def async_setup_entry(
@@ -75,7 +76,7 @@ class PGMButtonEntity(Entity):
         self.coordinator = coordinator
         self.sensor_name = name
         self._state = state
-        self.button_enabled = enabled  # enabled
+        self.button_enabled = enabled
         self._pgm_number = pgm_number
         self._pulse = pulse
         self.post_data = {}
@@ -90,13 +91,11 @@ class PGMButtonEntity(Entity):
         else:
             self.post_data = {"actionCmd": "pgm-close", "actionNum": self._pgm_number}
 
-        ret = await self.coordinator.api.update_pgm(self.post_data)
-        await self.coordinator.async_update_data()
+        self._state = await self.coordinator.api.update_pgm(self.post_data) 
 
-        self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_schedule_update_ha_state()
 
-        return ret
+        return self._state
 
     async def async_turn_off(self, **kwargs):
         """Turn the custom button entity on."""
@@ -227,13 +226,11 @@ class UKeyButtonEntity(Entity):
         """Turn the custom button entity on."""
         self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}
 
-        ret = await self.coordinator.api.update_ukey(self.post_data)
-        await self.coordinator.async_update_data()
+        self._state = await self.coordinator.api.update_ukey(self.post_data)
 
-        self._state = self.coordinator.ukey_data[self._ukey_number - 1]
         self.async_schedule_update_ha_state()
 
-        return ret
+        return self._state
 
     @property
     def name(self):

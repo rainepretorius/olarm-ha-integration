@@ -14,6 +14,7 @@ from .const import DOMAIN
 from .const import VERSION
 from .const import OLARM_ZONE_TYPE_TO_HA
 from .exceptions import DictionaryKeyError
+from homeassistant.core import callback
 
 
 async def async_setup_entry(
@@ -312,6 +313,27 @@ class OlarmSensor(BinarySensorEntity):
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
 
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.sensor_data[self.index][
+            "state"
+        ] == "on" and self._attr_is_on != (
+            self.coordinator.sensor_data[self.index]["state"] == "on"
+        ):
+            # Zone Active
+            self._attr_is_on = True
+            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+            self.async_write_ha_state()
+
+        else:
+            # Zone not active
+            self._attr_is_on = False
+            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+            self.async_write_ha_state()
+        
+        self.async_write_ha_state()
+
 
 class OlarmBypassSensor(BinarySensorEntity):
     """
@@ -436,3 +458,24 @@ class OlarmBypassSensor(BinarySensorEntity):
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.sensor_data[self.index][
+            "state"
+        ] == "on" and self._attr_is_on != (
+            self.coordinator.sensor_data[self.index]["state"] == "on"
+        ):
+            # Zone Active
+            self._attr_is_on = True
+            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+            self.async_write_ha_state()
+
+        else:
+            # Zone not active
+            self._attr_is_on = False
+            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+            self.async_write_ha_state()
+        
+        self.async_write_ha_state()

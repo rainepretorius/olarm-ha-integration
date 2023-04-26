@@ -127,7 +127,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
+        ) -> config_entries.OptionsFlow:
         """Create the options flow."""
         return OlarmOptionsFlow(config_entry)
 
