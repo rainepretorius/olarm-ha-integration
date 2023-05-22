@@ -90,6 +90,9 @@ class OlarmCoordinator(DataUpdateCoordinator):
 
         devices_json = await self.api.get_device_json()
         if bool(devices_json):
+            # Checking if the device is online.
+            self.device_online = devices_json["deviceStatus"].lower() == "online"
+            
             # Getting the sesor states for each zone.
             self.data = await self.api.get_sensor_states(devices_json)
             self.sensor_data = self.data
@@ -151,8 +154,4 @@ class OlarmCoordinator(DataUpdateCoordinator):
     async def async_get_data(self):
         """Update data via Olarm's API"""
         return await self.update_data()
-    
-    async def async_get_data(self):
-        """Get the data via Olarm's API"""
-        return await self.update_data()
-        
+

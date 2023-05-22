@@ -170,7 +170,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def last_changed(self) -> str | None:
@@ -263,6 +263,13 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
             )
             return False
 
+    async def async_added_to_hass(self) -> None:
+        """
+        When entity is added to hass.
+        """
+        await super().async_added_to_hass()
+        self._handle_coordinator_update()
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -299,13 +306,6 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
             LOGGER.debug("Could not set alarm panel trigger")
 
         super()._handle_coordinator_update()
-
-    async def async_added_to_hass(self) -> None:
-        """
-        When entity is added to hass.
-        """
-        await super().async_added_to_hass()
-        self._handle_coordinator_update()
 
     def check_code(self, entered_code=None) -> bool:
         """

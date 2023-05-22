@@ -131,24 +131,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             service_file.write(line)
 
     # Forwarding the setup for the other Home Assistant platforms if it is not set up or a new device was added.
-    if (
-        f"{ALARM_CONTROL_PANEL_DOMAIN}.{DOMAIN}" in hass.config.components
-        and not device_len_changed
-    ):
-        PLATFORMS.remove(ALARM_CONTROL_PANEL_DOMAIN)
-
-    if f"{BUTTON_DOMAIN}.{DOMAIN}" in hass.config.components and not device_len_changed:
-        PLATFORMS.remove(BUTTON_DOMAIN)
-
-    if (
-        f"{BINARY_SENSOR_DOMAIN}.{DOMAIN}" in hass.config.components
-        and not device_len_changed
-    ):
-        PLATFORMS.remove(BINARY_SENSOR_DOMAIN)
-
-    if f"{SWITCH_DOMAIN}.{DOMAIN}" in hass.config.components and not device_len_changed:
-        PLATFORMS.remove(SWITCH_DOMAIN)
-
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     return True

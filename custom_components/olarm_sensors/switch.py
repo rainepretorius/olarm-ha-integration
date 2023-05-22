@@ -75,12 +75,6 @@ async def async_setup_entry(
             "Added Olarm Bypass switches for device (%s)", coordinator.olarm_device_name
         )
 
-    """
-    if "switch.olarm_sensors" in hass.config.components:
-        LOGGER.info("Added Olarm PGM and Bypass switches for all devices")
-        return True
-    """
-
     # Adding Olarm Switches to Home Assistant
     async_add_entities(entities)
     LOGGER.info("Added Olarm PGM and Bypass switches for all devices")
@@ -109,15 +103,11 @@ class BypassSwitchEntity(SwitchEntity):
         """Turn on the zone bypass."""
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
         await self.async_update()
-        await self.async_update()
-        await self.async_update()
         return ret
 
     async def async_turn_off(self, **kwargs):
         """Turn off the zone bypass."""
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
-        await self.async_update()
-        await self.async_update()
         await self.async_update()
         return ret
 
@@ -125,7 +115,6 @@ class BypassSwitchEntity(SwitchEntity):
         """
         Writing the state of the sensor to Home Assistant
         """
-        await self.async_update()
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
@@ -141,7 +130,7 @@ class BypassSwitchEntity(SwitchEntity):
         """
         Whether the entity is available. IE the coordinator updates successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def name(self):
@@ -237,8 +226,7 @@ class PGMSwitchEntity(SwitchEntity):
         self.post_data = {"actionCmd": "pgm-close", "actionNum": self._pgm_number}
 
         ret = await self.coordinator.api.update_pgm(self.post_data)
-        ret = await self.coordinator.api.update_pgm(self.post_data)
-        ret = await self.coordinator.api.update_pgm(self.post_data)
+        ret = await self.coordinator.update_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_write_ha_state()
@@ -250,8 +238,7 @@ class PGMSwitchEntity(SwitchEntity):
         self.post_data = {"actionCmd": "pgm-open", "actionNum": self._pgm_number}
 
         ret = await self.coordinator.api.update_pgm(self.post_data)
-        ret = await self.coordinator.api.update_pgm(self.post_data)
-        ret = await self.coordinator.api.update_pgm(self.post_data)
+        ret = await self.coordinator.update_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_write_ha_state()
@@ -267,7 +254,7 @@ class PGMSwitchEntity(SwitchEntity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def name(self):

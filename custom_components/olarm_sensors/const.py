@@ -11,8 +11,7 @@ from homeassistant.const import (
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 
-VERSION = "2.0.9"
-
+VERSION = "2.1.0"
 DOMAIN = "olarm_sensors"
 AuthenticationError = "invalid_credentials"
 DeviceIDError = "invalid_device_id"
@@ -26,7 +25,6 @@ CONF_OLARM_DEVICES = "selected_olarm_devices"
 OLARM_DEVICE_NAMES = "olarm_device_names"
 OLARM_DEVICES = "olarm_devices"
 OLARM_DEVICE_AMOUNT = "olarm_device_amount"
-
 OLARM_STATE_TO_HA = {
     "disarm": STATE_ALARM_DISARMED,
     "notready": STATE_ALARM_DISARMED,
@@ -38,7 +36,6 @@ OLARM_STATE_TO_HA = {
     "fire": STATE_ALARM_TRIGGERED,
     "emergency": STATE_ALARM_TRIGGERED,
 }
-
 OLARM_CHANGE_TO_HA = {
     "area-disarm": STATE_ALARM_DISARMED,
     "area-stay": STATE_ALARM_ARMED_HOME,
@@ -47,7 +44,6 @@ OLARM_CHANGE_TO_HA = {
     None: None,
     'null': None
 }
-
 OLARM_ZONE_TYPE_TO_HA = {
     "": BinarySensorDeviceClass.MOTION,
     0: BinarySensorDeviceClass.MOTION,
@@ -61,25 +57,6 @@ OLARM_ZONE_TYPE_TO_HA = {
     1000: BinarySensorDeviceClass.PLUG,
     1001: BinarySensorDeviceClass.POWER,
 }
-
-
-class AlarmPanelArea:
-    """
-    DOCSTRING: Representation of the area number
-    """
-
-    area: int = 0
-
-    def __init__(self, area: int) -> None:
-        self.area = area
-        return None
-
-    @property
-    def data(self):
-        """
-        DOCSTRING: Returns the area number for the api.
-        """
-        return {"area": self.area}
 
 
 class BypassZone:

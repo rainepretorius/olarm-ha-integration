@@ -119,12 +119,15 @@ class OlarmApi:
                 else:
                     state = "off"
 
-                last_changed = datetime.strptime(
-                    time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
-                    "%a %b  %d %X %Y",
-                ) + timedelta(hours=2)
-
-                last_changed = last_changed.strftime("%a %d %b %Y %X")
+                try:
+                    last_changed = datetime.strptime(
+                        time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
+                        "%a %b  %d %X %Y",
+                    )
+                    last_changed = last_changed.strftime("%a %d %b %Y %X")
+                
+                except TypeError:
+                    last_changed = None
 
                 if zone < len(olarm_zones["zonesLabels"]) and (
                     olarm_zones["zonesLabels"][zone]
@@ -146,7 +149,8 @@ class OlarmApi:
                         "zone_number": zone
                     }
                 )
-
+            
+            zone = zone + 1
             for key, value in olarm_state["power"].items():
                 sensortype = 1000
                 if int(value) == 1:
@@ -168,6 +172,7 @@ class OlarmApi:
                         "zone_number": zone
                     }
                 )
+                zone = zone + 1
 
             return self.data
 

@@ -86,12 +86,6 @@ async def async_setup_entry(
             "Added Olarm data refresh button for device (%s)",
             coordinator.olarm_device_name,
         )
-
-    """
-    if "button.olarm_sensors" in hass.config.components:
-        LOGGER.info("Added Olarm pgm and utility key buttons")
-        return True
-    """
     
     async_add_entities(entities)
     LOGGER.info("Added Olarm pgm and utility key buttons")
@@ -146,7 +140,7 @@ class PGMButtonEntity(Entity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def name(self):
@@ -213,7 +207,6 @@ class UKeyButtonEntity(Entity):
 
     async def async_update(self):
         await self.coordinator.async_update_data()
-
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
         self.async_write_ha_state()
 
@@ -240,7 +233,7 @@ class UKeyButtonEntity(Entity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def name(self):
@@ -287,7 +280,6 @@ class UKeyButtonEntity(Entity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
-
         self.async_write_ha_state()
 
 
