@@ -12,6 +12,10 @@ from .const import (
     CONF_DEVICE_FIRMWARE,
     CONF_ALARM_CODE,
     LOGGER,
+    OLARM_DEVICES,
+    CONF_OLARM_DEVICES,
+    OLARM_DEVICE_AMOUNT,
+    OLARM_DEVICE_NAMES,
 )
 from .exceptions import APIForbiddenError, APINotFoundError
 from typing import Any
@@ -67,16 +71,14 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 errors[AuthenticationError] = "Invalid credentials!"
 
-            except APINotFoundError:
-                LOGGER.warning("User entered invalid device_id!")
-                errors[DeviceIDError] = "Invalid DEVICE ID!"
-
             # If there are errors, show the setup form with error messages
             if errors:
                 return await self._show_setup_form(errors=errors)
 
             # If there are no errors, create a config entry and return
             firmware = json[0]["deviceFirmware"]
+
+            setup_devices = [dev["deviceName"] for dev in json]
 
             # Saving the device
             return self.async_create_entry(
@@ -86,6 +88,10 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_SCAN_INTERVAL: scan_interval,
                     CONF_DEVICE_FIRMWARE: firmware,
                     CONF_ALARM_CODE: alarm_code,
+                    CONF_OLARM_DEVICES: setup_devices,
+                    OLARM_DEVICES: json,
+                    OLARM_DEVICE_AMOUNT: len(json),
+                    OLARM_DEVICE_NAMES: setup_devices,
                 },
             )
 
@@ -127,7 +133,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-        ) -> config_entries.OptionsFlow:
+    ) -> config_entries.OptionsFlow:
         """Create the options flow."""
         return OlarmOptionsFlow(config_entry)
 
@@ -144,6 +150,7 @@ class OlarmOptionsFlow(config_entries.OptionsFlow):
 
         else:
             alarm_code = self.config_entry.data[CONF_ALARM_CODE]
+
         return vol.Schema(
             {
                 vol.Required(
@@ -170,6 +177,13 @@ class OlarmOptionsFlow(config_entries.OptionsFlow):
                         "description": "Alarm Panel Code",
                     },
                 ): cv.string,
+                vol.Optional(
+                    CONF_OLARM_DEVICES,
+                    msg="The Olarm devices to load into this Home Assistant instance.",
+                    description={
+                        "description": "The Olarm devices to load into this Home Assistant instance.",
+                    },
+                ): cv.multi_select(self.config_entry.data[OLARM_DEVICE_NAMES]),
             }
         )
 
@@ -185,6 +199,7 @@ class OlarmOptionsFlow(config_entries.OptionsFlow):
             new = {**self.config_entry.data}
 
             new[CONF_ALARM_CODE] = alarm_code
+            new[OLARM_DEVICE_AMOUNT] = len(self.config_entry.data[OLARM_DEVICE_NAMES])
 
             return self.async_create_entry(title="Olarm Sensors", data=new)
 

@@ -2,7 +2,7 @@
 import aiohttp
 import time
 from .const import LOGGER
-from .exceptions import APIClientConnectorError, ListIndexError, DictionaryKeyError
+from .exceptions import APIClientConnectorError, ListIndexError, DictionaryKeyError, APINotFoundError
 from datetime import datetime, timedelta
 
 
@@ -16,7 +16,7 @@ class OlarmApi:
 
     def __init__(self, device_id, api_key) -> None:
         """
-        DOCSTRING: Initatiates a connection to the Olarm API.
+        Initatiates a connection to the Olarm API.
         params:
         \tdevice_id (str): UUID for the Olarm device.
         \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
@@ -29,9 +29,9 @@ class OlarmApi:
         self.devices = []
         self.headers = {"Authorization": f"Bearer {api_key}"}
 
-    async def get_devices_json(self) -> dict:
+    async def get_device_json(self) -> dict:
         """
-        DOCSTRING: This method gets and returns the data from the Olarm API for a spesific device:
+        This method gets and returns the data from the Olarm API for a spesific device:
 
         return:\tdict\tThe info associated with a device
         """
@@ -60,7 +60,7 @@ class OlarmApi:
                     headers=self.headers,
                 ) as response:
                     if response.status == 404:
-                        LOGGER.debug("actions endpoint returned 404")
+                        LOGGER.error("Olarm API actions endpoint returned 404")
                         return return_data
 
                     changes = await response.json()
@@ -83,6 +83,10 @@ class OlarmApi:
                     return return_data
 
         except APIClientConnectorError as ex:
+            LOGGER.error("Olarm API Changed By error\n%s", ex)
+            return return_data
+        
+        except APINotFoundError as ex:
             LOGGER.error("Olarm API Changed By error\n%s", ex)
             return return_data
 
@@ -139,6 +143,7 @@ class OlarmApi:
                         "state": state,
                         "last_changed": last_changed,
                         "type": zone_type,
+                        "zone_number": zone
                     }
                 )
 
@@ -153,13 +158,14 @@ class OlarmApi:
                 if key == "Batt":
                     key = "Battery"
                     sensortype = 1001
-
+                    
                 self.data.append(
                     {
                         "name": f"Powered by {key}",
                         "state": state,
                         "last_changed": None,
                         "type": sensortype,
+                        "zone_number": zone
                     }
                 )
 
@@ -210,6 +216,7 @@ class OlarmApi:
                         "name": zone_name,
                         "state": state,
                         "last_changed": last_changed,
+                        "zone_number": zone
                     }
                 )
 
@@ -236,19 +243,18 @@ class OlarmApi:
         for area_num in range(area_count):
             try:
                 if olarm_zones[area_num] == "":
-                    LOGGER.debug(
+                    LOGGER.warn(
                         "This device's area names have not been set up in Olarm, generating automatically"
                     )
                     olarm_zones[area_num] = f"Area {area_num + 1}"
 
                 if len(olarm_state["areas"]) > area_num:
-                    self.panel_data.extend(
-                        [
-                            {
-                                "name": f"{olarm_zones[area_num]}",
-                                "state": olarm_state["areas"][area_num],
-                            }
-                        ]
+                    self.panel_data.append(
+                        {
+                            "name": f"{olarm_zones[area_num]}",
+                            "state": olarm_state["areas"][area_num],
+                            "area_number": area_num + 1
+                        }
                     )
 
             except (DictionaryKeyError, KeyError) as ex:
@@ -258,7 +264,7 @@ class OlarmApi:
 
     async def get_pgm_zones(self, devices_json) -> list:
         """
-        DOCSTRING: Gets all the pgm's for the alarm panel.
+        Gets all the pgm's for the alarm panel.
         params:\n\t device_json (dict): The device json from get_devices_json.
 
         return: (list):\tThe pgm's for the alarm panel.
@@ -269,7 +275,7 @@ class OlarmApi:
             pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
             pgm_setup = devices_json["deviceProfile"]["pgmControl"]
 
-        except (DictionaryKeyError(), KeyError):
+        except (DictionaryKeyError, KeyError):
             # Error with PGM setup from Olarm app. Skipping PGM's
             LOGGER.debug(
                 "Error geting pgm setup data for Olarm device (%s)", self.device_id
@@ -286,11 +292,13 @@ class OlarmApi:
 
                 try:
                     enabled = pgm_setup[i][0] == "1"
+
                 except ListIndexError:
                     continue
 
                 try:
                     pulse = pgm_setup[i][2] == "1"
+
                 except ListIndexError:
                     continue
 
@@ -319,7 +327,7 @@ class OlarmApi:
 
     async def get_ukey_zones(self, devices_json) -> list:
         """
-        DOCSTRING: Gets all the Utility keys for the alarm panel.
+        Gets all the Utility keys for the alarm panel.
         params:\n\t device_json (dict): The device json from get_devices_json.
 
         return: (list):\tThe utility keys for the alarm panel.
@@ -355,11 +363,11 @@ class OlarmApi:
 
     async def get_alarm_trigger(self, devices_json) -> list:
         """
-        DOCSTRING: Returns the data for the zones that triggered an alarm for the area.
+        Returns the data for the zones that triggered an alarm for the area.
         """
         return devices_json["deviceState"]["areasDetail"]
 
-    async def update_zone(self, post_data) -> bool:
+    async def send_action(self, post_data) -> bool:
         """
         DOCSTRING:\tSends an action to the Olarm API to perform an action on the device.
         params:\n\tpost_data (dict): The area to perform the action to. As well as the action.
@@ -388,14 +396,7 @@ class OlarmApi:
         params:\n\tpost_data (dict): The pgm to perform the action to. As well as the action.
         """
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=pgm_data,
-                    headers=self.headers,
-                ) as response:
-                    resp = await response.json()
-                    return str(resp["actionStatus"]).lower() == "ok"
+            return await self.send_action(pgm_data)
 
         except APIClientConnectorError as ex:
             LOGGER.error(
@@ -411,14 +412,7 @@ class OlarmApi:
         params:\n\tukey_data (dict): The ukey to perform the action to. As well as the action.
         """
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
-                    data=ukey_data,
-                    headers=self.headers,
-                ) as response:
-                    resp = await response.json()
-                    return str(resp["actionStatus"]).lower() == "ok"
+            return await self.send_action(ukey_data)
 
         except APIClientConnectorError as ex:
             LOGGER.error(
@@ -428,52 +422,52 @@ class OlarmApi:
             )
             return False
 
-    async def arm_area(self, a=None) -> bool:
+    async def arm_area(self, area=None) -> bool:
         """
-        DOCSTRING: Sends the request to update_zone to arm an area.
+        Sends the request to send_action to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-arm", "actionNum": a.data["area"]}
-        return await self.update_zone(post_data)
+        post_data = {"actionCmd": "area-arm", "actionNum": area}
+        return await self.send_action(post_data)
 
-    async def sleep_area(self, a=None) -> bool:
+    async def sleep_area(self, area=None) -> bool:
         """
-        DOCSTRING: Sends the request to update_zone to arm an area.
+        Sends the request to send_action to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-sleep", "actionNum": a.data["area"]}
-        return await self.update_zone(post_data)
+        post_data = {"actionCmd": "area-sleep", "actionNum": area}
+        return await self.send_action(post_data)
 
-    async def stay_area(self, a=None) -> bool:
+    async def stay_area(self, area=None) -> bool:
         """
-        DOCSTRING: Sends the request to update_zone to arm an area.
+        Sends the request to send_action to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-stay", "actionNum": a.data["area"]}
-        return await self.update_zone(post_data)
+        post_data = {"actionCmd": "area-stay", "actionNum": area}
+        return await self.send_action(post_data)
 
-    async def disarm_area(self, a=None) -> bool:
+    async def disarm_area(self, area=None) -> bool:
         """
-        DOCSTRING: Sends the request to update_zone to arm an area.
+        Sends the request to send_action to arm an area.
         params:\n\tarea (int): The number of the area to apply the zone to.
         """
-        post_data = {"actionCmd": "area-disarm", "actionNum": a.data["area"]}
-        return await self.update_zone(post_data)
+        post_data = {"actionCmd": "area-disarm", "actionNum": area}
+        return await self.send_action(post_data)
 
     async def bypass_zone(self, zone) -> bool:
         """
-        DOCSTRING: Sends the request to update_zone to bypass a zone.
+        Sends the request to send_action to bypass a zone.
         params:\n\tzone (dict): The number of the zone to apply the zone to.
         """
         post_data = {
             "actionCmd": "zone-bypass",
             "actionNum": zone.data["zone_num"],
         }
-        return await self.update_zone(post_data)
+        return await self.send_action(post_data)
 
     async def get_all_devices(self) -> list:
         """
-        DOCSTRING: This method gets and returns the devices from the Olarm API:
+        This method gets and returns the devices from the Olarm API:
 
         return:\tlist\tThe devices assosiated with the api key.
         """
@@ -502,7 +496,7 @@ class OlarmSetupApi:
 
     def __init__(self, api_key) -> None:
         """
-        DOCSTRING: Initatiates a connection to the Olarm API.
+        Initatiates a connection to the Olarm API.
         params:
         \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
         """
@@ -511,7 +505,7 @@ class OlarmSetupApi:
 
     async def get_olarm_devices(self) -> list:
         """
-        DOCSTRING: This method gets and returns the devices from the Olarm API:
+        This method gets and returns the devices from the Olarm API:
 
         return:\tlist\tThe devices assosiated with the api key.
         """

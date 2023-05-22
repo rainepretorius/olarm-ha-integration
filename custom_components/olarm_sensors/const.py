@@ -11,7 +11,7 @@ from homeassistant.const import (
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 
-VERSION = "2.0.8"
+VERSION = "2.0.9"
 
 DOMAIN = "olarm_sensors"
 AuthenticationError = "invalid_credentials"
@@ -22,6 +22,10 @@ CONF_DEVICE_MAKE = "olarm_device_make"
 CONF_DEVICE_MODEL = "olarm_device_model"
 CONF_DEVICE_FIRMWARE = "olarm_device_firmware"
 CONF_ALARM_CODE = "olarm_arm_code"
+CONF_OLARM_DEVICES = "selected_olarm_devices"
+OLARM_DEVICE_NAMES = "olarm_device_names"
+OLARM_DEVICES = "olarm_devices"
+OLARM_DEVICE_AMOUNT = "olarm_device_amount"
 
 OLARM_STATE_TO_HA = {
     "disarm": STATE_ALARM_DISARMED,
@@ -41,6 +45,7 @@ OLARM_CHANGE_TO_HA = {
     "area-sleep": STATE_ALARM_ARMED_NIGHT,
     "area-arm": STATE_ALARM_ARMED_AWAY,
     None: None,
+    'null': None
 }
 
 OLARM_ZONE_TYPE_TO_HA = {
@@ -55,21 +60,6 @@ OLARM_ZONE_TYPE_TO_HA = {
     51: BinarySensorDeviceClass.SAFETY,
     1000: BinarySensorDeviceClass.PLUG,
     1001: BinarySensorDeviceClass.POWER,
-}
-
-SERVICES_TO_YAML = {
-    "arm": {
-        "description": "Send a request to Olarm to set areanumber area to armed on alarm."
-    },
-    "sleep": {
-        "description": "Send a request to Olarm to set areanumber area to sleep on alarm."
-    },
-    "stay": {
-        "description": "Send a request to Olarm to set areanumber area to stay on alarm."
-    },
-    "disarm": {
-        "description": "Send a request to Olarm to set areanumber area to disarmed on alarm."
-    },
 }
 
 
@@ -90,3 +80,22 @@ class AlarmPanelArea:
         DOCSTRING: Returns the area number for the api.
         """
         return {"area": self.area}
+
+
+class BypassZone:
+    """
+    DOCSTRING: Representation of the area number
+    """
+
+    zone: int = 0
+
+    def __init__(self, zone: int) -> None:
+        self.zone = zone
+        return None
+
+    @property
+    def data(self):
+        """
+        DOCSTRING: Returns the zone number for the api.
+        """
+        return {"zone_num": self.zone}

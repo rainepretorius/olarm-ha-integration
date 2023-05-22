@@ -1,12 +1,10 @@
-"""Support for Olarm alarm control panels."""
+# pylint: disable=hass-component-root-import
 from __future__ import annotations
-from collections.abc import Iterable
-from typing import Callable, Any
+from collections.abc import Iterable, Callable
+from typing import Any
 from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
 from homeassistant.components.alarm_control_panel import CodeFormat
-from homeassistant.components.alarm_control_panel.const import (
-    AlarmControlPanelEntityFeature,
-)
+from homeassistant.components.alarm_control_panel import const
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.core import HomeAssistant
@@ -15,42 +13,59 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import OLARM_STATE_TO_HA
 from .const import DOMAIN
 from .const import LOGGER
-from .const import AlarmPanelArea
 from .const import VERSION
 from .const import CONF_DEVICE_FIRMWARE
 from .const import CONF_ALARM_CODE
 from .coordinator import OlarmCoordinator
-from .exceptions import ListIndexError, DictionaryKeyError, CodeTypeError
+from .exceptions import ListIndexError, CodeTypeError
+from datetime import datetime, timedelta
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: Callable[[Iterable[Entity]], None],
-    ) -> None:
+) -> None:
     """Set up Olarm alarm control panel from a config entry."""
-    LOGGER.debug("""Set up Olarm alarm control panel from the config entry.""")
 
     entities = []
+
     for device in hass.data[DOMAIN]["devices"]:
-        LOGGER.debug("Setting up area (%s) for device (%s)")
+        LOGGER.info("Setting up Alarm Panels for device (%s)", device["deviceName"])
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
-        panel_states = await coordinator.get_panel_states()
+        await coordinator.async_get_data()
 
-        area = 1
-        for sensor in panel_states:
-            LOGGER.debug("Setting up area (%s) for device (%s)", sensor['name'], device['deviceName'])
-            sensor = OlarmAlarm(
+        for sensor in coordinator.panel_state:
+            LOGGER.info(
+                "Setting up area (%s) for device (%s)",
+                sensor["name"],
+                device["deviceName"],
+            )
+            alarm_panel = OlarmAlarm(
                 coordinator=coordinator,
                 sensor_name=sensor["name"],
                 state=sensor["state"],
-                area=area,
+                area=sensor["area_number"],
             )
-            entities.append(sensor)
-            area = area + 1
+
+            entities.append(alarm_panel)
+
+            LOGGER.info(
+                "Set up area (%s) for device (%s)",
+                sensor["name"],
+                device["deviceName"],
+            )
+
+    """
+    if "alarm_control_panel.olarm_sensors" in hass.config.components:
+        LOGGER.info("Added Olarm Alarm Control Panels for all devices")
+        return True
+    """
 
     async_add_entities(entities)
+    LOGGER.info("Added Olarm Alarm Control Panels for all devices")
+    return True
 
 
 class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
@@ -69,7 +84,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     def __init__(self, coordinator, sensor_name, state, area) -> None:
         """Initialize the Olarm Alarm Control Panel."""
-        LOGGER.debug(
+        LOGGER.info(
             "Initiating Olarm Alarm Control Panel for area (%s) device (%s)",
             sensor_name,
             coordinator.olarm_device_name,
@@ -95,6 +110,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     @property
     def code_format(self):
+        """The format of the code used to authenticate alarm actions."""
         if self.format is None:
             return None
 
@@ -103,6 +119,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     @property
     def code_arm_required(self):
+        """whether a code is needed to authenticate alarm actions."""
         if self.format is None:
             return False
 
@@ -112,34 +129,23 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     @property
     def unique_id(self):
         """
-        DOCSTRING: The unique id for this entity sothat it can be managed from the ui.
+        The unique id for this entity sothat it can be managed from the ui.
         """
-        return f"{self.coordinator.olarm_device_id}_{self.sensor_name}".replace(
-            " ", "_"
-        ).lower()
+        return f"{self.coordinator.olarm_device_id}_" + "_".join(
+            self.sensor_name.lower().split(" ")
+        )
 
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        try:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
-            }
-
-        except DictionaryKeyError:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": "Redo setup for integration",
-            }
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+            "manufacturer": "Raine Pretorius",
+            "model": f"{self.coordinator.olarm_device_make}",
+            "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+            "sw_version": VERSION,
+            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+        }
 
     @property
     def state(self) -> str | None:
@@ -150,19 +156,21 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     def supported_features(self) -> int:
         """Return the list of supported features."""
         if self.coordinator.olarm_device_make.lower() == "nemtek":
-            return AlarmControlPanelEntityFeature.ARM_AWAY
+            return const.AlarmControlPanelEntityFeature.ARM_AWAY
 
         else:
             return (
-                AlarmControlPanelEntityFeature.ARM_AWAY
-                | AlarmControlPanelEntityFeature.ARM_HOME
-                | AlarmControlPanelEntityFeature.ARM_NIGHT
+                const.AlarmControlPanelEntityFeature.ARM_AWAY
+                | const.AlarmControlPanelEntityFeature.ARM_HOME
+                | const.AlarmControlPanelEntityFeature.ARM_NIGHT
             )
 
     @property
-    def changed_by(self) -> str | None:
-        """Return the last change triggered by."""
-        return self._changed_by
+    def available(self):
+        """
+        Whether the entity is available. IE the coordinator updatees successfully.
+        """
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
 
     @property
     def last_changed(self) -> str | None:
@@ -170,74 +178,87 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         return self._last_changed
 
     @property
-    def state_attributes(self) -> dict | None:
+    def extra_state_attributes(self) -> dict | None:
         """
-        DOCSTRING: Return the state attributes.
+        Return the state attributes.
         """
         return {
             "last_changed": self._last_changed,
-            "changed_by": self._changed_by,
             "area_trigger": self._area_trigger,
             "last_action": self._last_action,
             "code_required": self.code_arm_required,
             "code_format": self.code_format,
             "area_name": self.sensor_name,
-            "area_number": self.area
+            "area_number": self.area,
         }
 
     async def async_alarm_disarm(self, code=None) -> None:
         """
-        DOCSTRING: Send the disarm command to the api.
+        Send the disarm command to the api.
         """
-        LOGGER.info("OlarmAlarm.async_alarm_disarm")
+        LOGGER.info(
+            "Olarm device (%s) has been disarmed", self.coordinator.olarm_device_name
+        )
         if self.check_code(code):
-            return await self.coordinator.api.disarm_area(AlarmPanelArea(self.area))
+            return await self.coordinator.api.disarm_area(self.area)
 
         else:
             LOGGER.error(
-                "Invalid code given for alarm disarm for device: %s",
+                "Invalid code given to disarm alarm for Olarm device (%s)",
                 self.coordinator.olarm_device_name,
             )
             return False
 
     async def async_alarm_arm_home(self, code=None) -> None:
         """
-        DOCSTRING: Send the stay command to the api.
+        Send the stay command to the api.
         """
-        LOGGER.info("OlarmAlarm.async_alarm_arm_home")
+        LOGGER.info(
+            "Olarm device (%s) has been set to armed_home (stay)",
+            self.coordinator.olarm_device_name,
+        )
         if self.check_code(code):
-            return await self.coordinator.api.stay_area(AlarmPanelArea(self.area))
+            return await self.coordinator.api.stay_area(self.area)
+
         else:
             LOGGER.error(
-                "Invalid code given for alarm arm home for device: %s",
+                "Invalid code given to set alarm to armed home (stay) for Olarm device (%s)",
                 self.coordinator.olarm_device_name,
             )
             return False
 
     async def async_alarm_arm_away(self, code=None) -> None:
         """
-        DOCSTRING: Send the arm command to the api.
+        Send the arm command to the api.
         """
-        LOGGER.info("OlarmAlarm.async_alarm_arm_away")
+        LOGGER.info(
+            "Olarm device (%s) has been set to armed_away (armed)",
+            self.coordinator.olarm_device_name,
+        )
         if self.check_code(code):
-            return await self.coordinator.api.arm_area(AlarmPanelArea(self.area))
+            return await self.coordinator.api.arm_area(self.area)
+
         else:
             LOGGER.error(
-                "Invalid code given for alarm arm away for device: %s",
+                "Invalid code given to set alarm to armed_away (Arm) for Olarm device (%s)",
                 self.coordinator.olarm_device_name,
             )
             return False
 
     async def async_alarm_arm_night(self, code=None) -> None:
         """
-        DOCSTRING: Send the sleep command to the api.
+        Send the sleep command to the api.
         """
-        LOGGER.info("OlarmAlarm.async_alarm_arm_night")
+        LOGGER.info(
+            "Olarm device (%s) has been set to armed_night (sleep)",
+            self.coordinator.olarm_device_name,
+        )
         if self.check_code(code):
-            return await self.coordinator.api.sleep_area(AlarmPanelArea(self.area))
+            return await self.coordinator.api.sleep_area(self.area)
+
         else:
             LOGGER.error(
-                "Invalid code given for alarm arm night for device: %s",
+                "Invalid code given to set alarm to armed_night (sleep) for Olarm device (%s)",
                 self.coordinator.olarm_device_name,
             )
             return False
@@ -245,41 +266,44 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        state = self.coordinator.panel_state
-        if len(state) > 0:
-            for area_state in state:
-                if area_state["name"] == self.sensor_name:
-                    self._state = OLARM_STATE_TO_HA.get(area_state["state"])
-                    break
+        try:
+            self._state = OLARM_STATE_TO_HA.get(
+                self.coordinator.panel_state[self.area - 1]["state"]
+            )
+
+        except ListIndexError:
+            LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
 
         try:
             self._changed_by = self.coordinator.changed_by[self.area]
 
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel changed by")
+            LOGGER.debug("Could not set alarm panel changed by")
 
         try:
             self._last_changed = self.coordinator.last_changed[self.area]
+
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel last changed")
+            LOGGER.debug("Could not set alarm panel last changed")
 
         try:
             self._last_action = self.coordinator.last_action[self.area]
+
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel last action")
+            LOGGER.debug("Could not set alarm panel last action")
 
         try:
             self._area_trigger = self.coordinator.area_triggers[self.area - 1]
+
         except ListIndexError:
-            LOGGER.error("Could not set alarm panel trigger")
+            LOGGER.debug("Could not set alarm panel trigger")
 
         super()._handle_coordinator_update()
 
     async def async_added_to_hass(self) -> None:
         """
-        DOCSTRING: When entity is added to hass.
+        When entity is added to hass.
         """
-        LOGGER.debug("OlarmAlarm.async_added_to_hass")
         await super().async_added_to_hass()
         self._handle_coordinator_update()
 
@@ -300,7 +324,8 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
                     return checkcode == int(
                         self.coordinator.entry.data[CONF_ALARM_CODE]
                     )
-                except Exception:
+
+                except CodeTypeError:
                     return False
 
             elif self.code_format == "text":
@@ -310,7 +335,4 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
                 return False
 
         except CodeTypeError:
-            return False
-
-        except Exception:
             return False

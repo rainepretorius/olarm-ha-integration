@@ -4,12 +4,12 @@ from .coordinator import OlarmCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.core import callback
 from .const import CONF_DEVICE_FIRMWARE
 from .const import LOGGER
 from .const import DOMAIN
 from .const import VERSION
-from .exceptions import DictionaryKeyError
-from homeassistant.core import callback
+from datetime import datetime, timedelta
 
 
 async def async_setup_entry(
@@ -19,6 +19,7 @@ async def async_setup_entry(
 
     # Defining the list to store the instances of each alarm zone.
     entities = []
+
     for device in hass.data[DOMAIN]["devices"]:
         # Creating an instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
@@ -26,38 +27,75 @@ async def async_setup_entry(
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
         await coordinator.async_get_data()
 
-        LOGGER.info("Setting up Olarm Sensors")
+        LOGGER.info(
+            "Setting up Olarm buttons for device (%s)", coordinator.olarm_device_name
+        )
 
+        LOGGER.info(
+            "Adding Olarm PGM buttons for device (%s)", coordinator.olarm_device_name
+        )
         # Looping through the pgm's for the panel.
         for sensor in coordinator.pgm_data:
             # Creating a sensor for each zone on the alarm panel.
-            sensor = PGMButtonEntity(
+            if not sensor["pulse"]:
+                continue
+
+            pgm_button = PGMButtonEntity(
                 coordinator=coordinator,
                 name=sensor["name"],
                 state=sensor["state"],
                 enabled=sensor["enabled"],
                 pgm_number=sensor["pgm_number"],
-                pulse=sensor["pulse"],
             )
-            entities.append(sensor)
 
+            entities.append(pgm_button)
+
+        LOGGER.info(
+            "Added Olarm PGM buttons for device (%s)", coordinator.olarm_device_name
+        )
+
+        LOGGER.info(
+            "Adding Olarm Utility key buttons for device (%s)",
+            coordinator.olarm_device_name,
+        )
         # Looping through the ukeys's for the panel.
-        for sensor in coordinator.ukey_data:
+        for sensor1 in coordinator.ukey_data:
             # Creating a sensor for each zone on the alarm panel.
-            sensor = UKeyButtonEntity(
+            ukey_button = UKeyButtonEntity(
                 coordinator=coordinator,
-                name=sensor["name"],
-                state=sensor["state"],
-                ukey_number=sensor["ukey_number"],
+                name=sensor1["name"],
+                state=sensor1["state"],
+                ukey_number=sensor1["ukey_number"],
             )
-            entities.append(sensor)
 
-        LOGGER.info("Adding Olarm PGM's and Ukeys")
+            entities.append(ukey_button)
 
-    # Adding Olarm Sensors to Home Assistant
+        LOGGER.info(
+            "Added Olarm Utility key buttons for device (%s)",
+            coordinator.olarm_device_name,
+        )
+
+        LOGGER.info(
+            "Adding Olarm data refresh button for device (%s)",
+            coordinator.olarm_device_name,
+        )
+
+        entities.append(RefreshButtonEntity(coordinator))
+
+        LOGGER.info(
+            "Added Olarm data refresh button for device (%s)",
+            coordinator.olarm_device_name,
+        )
+
+    """
+    if "button.olarm_sensors" in hass.config.components:
+        LOGGER.info("Added Olarm pgm and utility key buttons")
+        return True
+    """
+    
     async_add_entities(entities)
-
-    LOGGER.info("Added Olarm PGM's and Ukeys")
+    LOGGER.info("Added Olarm pgm and utility key buttons")
+    return True
 
 
 class PGMButtonEntity(Entity):
@@ -70,7 +108,6 @@ class PGMButtonEntity(Entity):
         state,
         enabled=True,
         pgm_number=None,
-        pulse=False,
     ) -> None:
         """Initialize the custom button entity."""
         self.coordinator = coordinator
@@ -78,40 +115,9 @@ class PGMButtonEntity(Entity):
         self._state = state
         self.button_enabled = enabled
         self._pgm_number = pgm_number
-        self._pulse = pulse
         self.post_data = {}
 
         return None
-
-    async def async_turn_on(self, **kwargs):
-        """Turn the custom button entity on."""
-        if self._pulse:
-            self.post_data = {"actionCmd": "pgm-pulse", "actionNum": self._pgm_number}
-
-        else:
-            self.post_data = {"actionCmd": "pgm-close", "actionNum": self._pgm_number}
-
-        self._state = await self.coordinator.api.update_pgm(self.post_data) 
-
-        self.async_schedule_update_ha_state()
-
-        return self._state
-
-    async def async_turn_off(self, **kwargs):
-        """Turn the custom button entity on."""
-        if self._pulse:
-            self.post_data = {"actionCmd": "pgm-pulse", "actionNum": self._pgm_number}
-
-        else:
-            self.post_data = {"actionCmd": "pgm-open", "actionNum": self._pgm_number}
-
-        ret = await self.coordinator.api.update_pgm(self.post_data)
-        await self.coordinator.async_update_data()
-
-        self._state = self.coordinator.pgm_data[self._pgm_number - 1]
-        self.async_schedule_update_ha_state()
-
-        return ret
 
     async def async_added_to_hass(self):
         """Run when the entity is added to Home Assistant."""
@@ -119,23 +125,28 @@ class PGMButtonEntity(Entity):
 
     async def async_press(self):
         """
-        DOCSTRING: Press the button
+        Handle the button press event.
         """
-        if self._state:
-            return await self.async_turn_off()
-
-        else:
-            return await self.async_turn_on()
+        self.post_data = {"actionCmd": "pgm-pulse", "actionNum": self._pgm_number}
+        self._state = await self.coordinator.api.update_pgm(self.post_data)
+        self.async_write_ha_state()
+        return self._state
 
     async def _async_press_action(self):
         """
-        DOCSTRING: Press the button
+        Handle the button press event.
         """
-        if self._state:
-            return await self.async_turn_off()
+        self.post_data = {"actionCmd": "pgm-pulse", "actionNum": self._pgm_number}
+        self._state = await self.coordinator.api.update_pgm(self.post_data)
+        self.async_write_ha_state()
+        return self._state
 
-        else:
-            return await self.async_turn_on()
+    @property
+    def available(self):
+        """
+        Whether the entity is available. IE the coordinator updatees successfully.
+        """
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
 
     @property
     def name(self):
@@ -159,6 +170,7 @@ class PGMButtonEntity(Entity):
 
     @property
     def state(self):
+        """Returns the state of the PGM"""
         if self.button_enabled and self._state:
             return "on"
 
@@ -174,25 +186,14 @@ class PGMButtonEntity(Entity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        try:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
-            }
-
-        except DictionaryKeyError:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": "Redo setup for integration",
-            }
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+            "manufacturer": "Raine Pretorius",
+            "model": f"{self.coordinator.olarm_device_make}",
+            "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+            "sw_version": VERSION,
+            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+        }
 
 
 class UKeyButtonEntity(Entity):
@@ -201,7 +202,7 @@ class UKeyButtonEntity(Entity):
     def __init__(
         self, coordinator: OlarmCoordinator, name, state, ukey_number=None
     ) -> None:
-        """Initialize the custom button entity."""
+        """Initialize the Utility key button entity."""
         self.coordinator = coordinator
         self.sensor_name = name
         self._state = state
@@ -210,27 +211,36 @@ class UKeyButtonEntity(Entity):
 
         return None
 
+    async def async_update(self):
+        await self.coordinator.async_update_data()
+
+        self._state = self.coordinator.ukey_data[self._ukey_number - 1]
+        self.async_write_ha_state()
+
     async def async_press(self):
         """Turn the custom button entity on."""
         self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}
 
         ret = await self.coordinator.api.update_ukey(self.post_data)
-        await self.coordinator.async_update_data()
-
-        self._state = self.coordinator.ukey_data[self._ukey_number - 1]
-        self.async_schedule_update_ha_state()
-
+        await self.async_update()
         return ret
 
     async def _async_press_action(self):
         """Turn the custom button entity on."""
         self.post_data = {"actionCmd": "ukey-activate", "actionNum": self._ukey_number}
 
-        self._state = await self.coordinator.api.update_ukey(self.post_data)
+        ret = await self.coordinator.api.update_ukey(self.post_data)
 
-        self.async_schedule_update_ha_state()
+        await self.async_update()
 
-        return self._state
+        return ret
+
+    @property
+    def available(self):
+        """
+        Whether the entity is available. IE the coordinator updatees successfully.
+        """
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
 
     @property
     def name(self):
@@ -254,6 +264,7 @@ class UKeyButtonEntity(Entity):
 
     @property
     def state(self):
+        """Return the state of the Utility key"""
         if self._state:
             return "on"
 
@@ -263,22 +274,96 @@ class UKeyButtonEntity(Entity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        try:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
-            }
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+            "manufacturer": "Raine Pretorius",
+            "model": f"{self.coordinator.olarm_device_make}",
+            "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+            "sw_version": VERSION,
+            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+        }
 
-        except DictionaryKeyError:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": "Redo setup for integration",
-            }
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._state = self.coordinator.ukey_data[self._ukey_number - 1]
+
+        self.async_write_ha_state()
+
+
+class RefreshButtonEntity(Entity):
+    """Representation of a button to press for refreshing the data."""
+
+    def __init__(
+        self,
+        coordinator: OlarmCoordinator,
+    ) -> None:
+        """Initialize the bypass button entity."""
+        self.coordinator = coordinator
+
+        return None
+
+    async def async_press(self):
+        """Frefresh the data."""
+        return await self._async_press_action()
+
+    async def _async_press_action(self):
+        """Handle the button press event for refreshing the data."""
+        ret = await self.coordinator.update_data()
+        return ret
+
+    async def async_added_to_hass(self):
+        """
+        Writing the state of the sensor to Home Assistant
+        """
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
+
+    @property
+    def available(self):
+        """
+        Whether the entity is available. IE the coordinator updatees successfully.
+        """
+        return True
+
+    @property
+    def name(self):
+        """
+        The name of the zone from the Alarm Panel
+        """
+        return f"({self.coordinator.olarm_device_name}) Refresh"
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID for this entity."""
+        return self.coordinator.olarm_device_id + "_refresh_button"
+
+    @property
+    def should_poll(self):
+        """Disable polling."""
+        return False
+
+    @property
+    def icon(self):
+        """Return the icon of the custom button entity."""
+        return "mdi:shield-refresh"
+
+    @property
+    def device_state_attributes(self):
+        """
+        The last time the state of the zone/ sensor changed on Olarm's side.
+        """
+        return {"last_update_time": self.coordinator.last_update}
+
+    @property
+    def device_info(self) -> dict:
+        """Return device information about this entity."""
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+            "manufacturer": "Raine Pretorius",
+            "model": f"{self.coordinator.olarm_device_make}",
+            "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+            "sw_version": VERSION,
+            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+        }
