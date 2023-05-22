@@ -75,11 +75,6 @@ async def async_setup_entry(
             "Added Olarm Zone Bypass Sensors for device (%s)",
             coordinator.olarm_device_name,
         )
-    """    
-    if "binary_sensor.olarm_sensors" in hass.config.components:
-        LOGGER.info("Added Olarm Zone and Bypass Sensors")
-        return True
-    """
     
     async_add_entities(entities)
     LOGGER.info("Added Olarm Zone and Bypass Sensors")
@@ -180,16 +175,16 @@ class OlarmSensor(BinarySensorEntity):
             self.sensortypestring = "Device Power Plug Status"
 
     async def async_update(self):
-        await self.coordinator._async_update_data()
+        coordinator_update_success = await self.coordinator.update_data()
         self._attr_is_on = self.coordinator.sensor_data[self.index]["state"] == "on"
         self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
         self.async_write_ha_state()
+        return coordinator_update_success
 
     async def async_added_to_hass(self):
         """
         Writing the state of the sensor to Home Assistant
         """
-        await self.async_update()
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
@@ -235,7 +230,7 @@ class OlarmSensor(BinarySensorEntity):
             else:
                 return "mdi:motion-sensor-off"
 
-        # Window
+        # Window Sensor
         elif (
             "windows" in self.sensor_name.lower() or "wind" in self.sensor_name.lower()
         ):
@@ -245,7 +240,7 @@ class OlarmSensor(BinarySensorEntity):
             else:
                 return "mdi:window-closed"
 
-        # Door
+        # Door Sensor
         elif "door" in self.sensor_name.lower():
             if self.is_on:
                 return "mdi:door-open"
@@ -278,7 +273,7 @@ class OlarmSensor(BinarySensorEntity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def state_attributes(self) -> dict | None:
@@ -288,6 +283,8 @@ class OlarmSensor(BinarySensorEntity):
             "last_tripped_time": self.last_changed,
             "zone_number": self.index + 1,
             "sensor_type": self.sensortypestring,
+            "coordinator_state": self.coordinator.sensor_data[self.index]['state'],
+            "boolean_check": self.coordinator.sensor_data[self.index]['state'] == "on"
         }
 
     @property
@@ -352,21 +349,11 @@ class OlarmBypassSensor(BinarySensorEntity):
 
     async def async_update(self):
         """Handling the updated data / updating the data."""
-        if self.coordinator.sensor_data[self.index][
-            "state"
-        ] == "on" and self._attr_is_on != (
-            self.coordinator.sensor_data[self.index]["state"] == "on"
-        ):
-            # Zone Bypassed
-            self._attr_is_on = True
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
-
-        else:
-            # Zone not bypassed
-            self._attr_is_on = False
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
+        coordinator_update_success = await self.coordinator.update_data()
+        self._attr_is_on = self.coordinator.bypass_state[self.index]["state"] == "on"
+        self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+        self.async_write_ha_state()
+        return coordinator_update_success
 
     @property
     def unique_id(self):
@@ -394,15 +381,8 @@ class OlarmBypassSensor(BinarySensorEntity):
         """
         Whether the sensor/zone is bypassed or not.
         """
-        if self.coordinator.bypass_state[self.index]["state"] == "on":
-            # Zone Bypassed
-            self._attr_is_on = True
-            return True
-
-        else:
-            # Zone not bypassed
-            self._attr_is_on = False
-            return False
+        self._attr_is_on = self.coordinator.bypass_state[self.index]["state"] == "on"
+        return self._attr_is_on
 
     @property
     def icon(self):
@@ -421,7 +401,7 @@ class OlarmBypassSensor(BinarySensorEntity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def device_state_attributes(self):
@@ -446,18 +426,7 @@ class OlarmBypassSensor(BinarySensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.coordinator.sensor_data[self.index][
-            "state"
-        ] == "on" and self._attr_is_on != (
-            self.coordinator.sensor_data[self.index]["state"] == "on"
-        ):
-            # Zone Bypassed
-            self._attr_is_on = True
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
+        self._attr_is_on = self.coordinator.bypass_state[self.index]["state"] == "on"
+        self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+        self.async_write_ha_state()
 
-        else:
-            # Zone not bypassed
-            self._attr_is_on = False
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
