@@ -8,13 +8,14 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.core import callback
 from .const import LOGGER
 from .const import CONF_DEVICE_FIRMWARE
 from .const import DOMAIN
 from .const import VERSION
 from .const import OLARM_ZONE_TYPE_TO_HA
 from .exceptions import DictionaryKeyError
-from homeassistant.core import callback
+from datetime import datetime, timedelta
 
 
 async def async_setup_entry(
@@ -31,42 +32,53 @@ async def async_setup_entry(
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
         await coordinator.async_get_data()
 
-        LOGGER.info("Setting up Olarm Sensors")
+        LOGGER.info(
+            "Adding Olarm Zones Sensors for device (%s)", coordinator.olarm_device_name
+        )
 
         # Looping through the sensors/zones for the panel.
-        index = 0
         for sensor in coordinator.sensor_data:
             # Creating a sensor for each zone on the alarm panel.
-            sensor1 = OlarmSensor(
+            zone_sensor = OlarmSensor(
                 coordinator=coordinator,
                 sensor_name=sensor["name"],
                 state=sensor["state"],
-                index=index,
+                index=sensor["zone_number"],
                 last_changed=sensor["last_changed"],
                 sensortype=sensor["type"],
             )
-            index = index + 1
-            entities.append(sensor1)
 
-        index = 0
+            entities.append(zone_sensor)
+
+        LOGGER.info(
+            "Added Olarm Zones Sensors for device (%s)", coordinator.olarm_device_name
+        )
+
+        LOGGER.info(
+            "Adding Olarm Zones Bypass Sensors for device (%s)",
+            coordinator.olarm_device_name,
+        )
+
         for sensor1 in coordinator.bypass_state:
             # Creating a bypass sensor for each zone on the alarm panel.
-            sensor = OlarmBypassSensor(
+            bypass_sensor = OlarmBypassSensor(
                 coordinator=coordinator,
                 sensor_name=sensor1["name"],
                 state=sensor1["state"],
-                index=index,
+                index=sensor1["zone_number"],
                 last_changed=sensor1["last_changed"],
             )
-            index = index + 1
-            entities.append(sensor)
 
-        LOGGER.info("Adding Olarm Sensors")
+            entities.append(bypass_sensor)
 
-    # Adding Olarm Sensors to Home Assistant
+        LOGGER.info(
+            "Added Olarm Zone Bypass Sensors for device (%s)",
+            coordinator.olarm_device_name,
+        )
+    
     async_add_entities(entities)
-
-    LOGGER.info("Added Olarm Sensors")
+    LOGGER.info("Added Olarm Zone and Bypass Sensors")
+    return True
 
 
 class OlarmSensor(BinarySensorEntity):
@@ -86,7 +98,7 @@ class OlarmSensor(BinarySensorEntity):
         sensortype: int,
     ) -> None:
         """
-        DOCSTRING: Creates a sensor for each zone on the alarm panel.
+        Creates a sensor for each zone on the alarm panel.
 
         (params):
             coordinator(OlarmCoordinator): The Data Update Coordinator.
@@ -133,10 +145,12 @@ class OlarmSensor(BinarySensorEntity):
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
 
         else:
+            # Setting the deviceclass from the Olarm App config.
             try:
                 self._attr_device_class = OLARM_ZONE_TYPE_TO_HA[self.type]
 
-            except DictionaryKeyError:
+            except (DictionaryKeyError, KeyError):
+                # Cannot find a type and thus reverting to motion sensor.
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
 
         if self._attr_device_class == BinarySensorDeviceClass.MOTION:
@@ -160,10 +174,25 @@ class OlarmSensor(BinarySensorEntity):
         elif self._attr_device_class == BinarySensorDeviceClass.PLUG:
             self.sensortypestring = "Device Power Plug Status"
 
+    async def async_update(self):
+        coordinator_update_success = await self.coordinator.update_data()
+        self._attr_is_on = self.coordinator.sensor_data[self.index]["state"] == "on"
+        self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+        self.async_write_ha_state()
+        return coordinator_update_success
+
+    async def async_added_to_hass(self):
+        """
+        Writing the state of the sensor to Home Assistant
+        """
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
+
     @property
     def unique_id(self):
         """
-        DOCSTRING: The unique id for this entity sothat it can be managed from the ui.
+        The unique id for this entity sothat it can be managed from the ui.
         """
         return f"{self.coordinator.olarm_device_id}_{self.sensor_name}".replace(
             " ", "_"
@@ -172,7 +201,7 @@ class OlarmSensor(BinarySensorEntity):
     @property
     def name(self):
         """
-        DOCSTRING: The name of the zone from the ALarm Panel
+        The name of the zone from the ALarm Panel
         """
         name = []
         name1 = self.sensor_name.replace("_", " ")
@@ -183,22 +212,15 @@ class OlarmSensor(BinarySensorEntity):
     @property
     def is_on(self):
         """
-        DOCSTRING: Whether the sensor/zone is active or not.
+        Whether the sensor/zone is active or not.
         """
-        if self.coordinator.sensor_data[self.index]["state"] == "on":
-            # Zone Active
-            self._attr_is_on = True
-            return True
-
-        else:
-            # Zone not active
-            self._attr_is_on = False
-            return False
+        self._attr_is_on = self.coordinator.sensor_data[self.index]["state"] == "on"
+        return self.coordinator.sensor_data[self.index]["state"] == "on"
 
     @property
     def icon(self):
         """
-        DOCSTRING: Setting the icon of the entity depending on the state of the zone.
+        Setting the icon of the entity depending on the state of the zone.
         """
         # Motion Sensor
         if "pir" in self.sensor_name.lower():
@@ -208,7 +230,7 @@ class OlarmSensor(BinarySensorEntity):
             else:
                 return "mdi:motion-sensor-off"
 
-        # Window
+        # Window Sensor
         elif (
             "windows" in self.sensor_name.lower() or "wind" in self.sensor_name.lower()
         ):
@@ -218,7 +240,7 @@ class OlarmSensor(BinarySensorEntity):
             else:
                 return "mdi:window-closed"
 
-        # Door
+        # Door Sensor
         elif "door" in self.sensor_name.lower():
             if self.is_on:
                 return "mdi:door-open"
@@ -249,9 +271,9 @@ class OlarmSensor(BinarySensorEntity):
     @property
     def available(self):
         """
-        DOCSTRING: Whether the entity is available. IE the coordinator updates successfully.
+        Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update_success
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def state_attributes(self) -> dict | None:
@@ -261,78 +283,29 @@ class OlarmSensor(BinarySensorEntity):
             "last_tripped_time": self.last_changed,
             "zone_number": self.index + 1,
             "sensor_type": self.sensortypestring,
+            "coordinator_state": self.coordinator.sensor_data[self.index]['state'],
+            "boolean_check": self.coordinator.sensor_data[self.index]['state'] == "on"
         }
 
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        try:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
-            }
-
-        except DictionaryKeyError:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": "Redo setup for integration",
-            }
-
-    async def async_update(self):
-        if self.coordinator.sensor_data[self.index][
-            "state"
-        ] == "on" and self._attr_is_on != (
-            self.coordinator.sensor_data[self.index]["state"] == "on"
-        ):
-            # Zone Active
-            self._attr_is_on = True
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
-            return True
-
-        else:
-            # Zone not active
-            self._attr_is_on = False
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
-            return False
-
-    async def async_added_to_hass(self):
-        """
-        DOCSTRING: Writing the state of the sensor to Home Assistant
-        """
-        self.async_on_remove(
-            self.coordinator.async_add_listener(self.async_write_ha_state)
-        )
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+            "manufacturer": "Raine Pretorius",
+            "model": f"{self.coordinator.olarm_device_make}",
+            "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+            "sw_version": VERSION,
+            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+        }
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.coordinator.sensor_data[self.index][
-            "state"
-        ] == "on" and self._attr_is_on != (
-            self.coordinator.sensor_data[self.index]["state"] == "on"
-        ):
-            # Zone Active
-            self._attr_is_on = True
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
-
-        else:
-            # Zone not active
-            self._attr_is_on = False
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
-        
+        self._attr_is_on = self.coordinator.sensor_data[self.index]["state"] == "on"
+        self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
         self.async_write_ha_state()
+        return self.coordinator.sensor_data[self.index]["state"] == "on"
 
 
 class OlarmBypassSensor(BinarySensorEntity):
@@ -351,13 +324,13 @@ class OlarmBypassSensor(BinarySensorEntity):
         last_changed,
     ) -> None:
         """
-        DOCSTRING: Creates a sensor for each zone on the alarm panel.
+        Creates a sensor for each zone on the alarm panel.
 
         (params):
-            coordinator(OlarmCoordinator): The Data Update Coordinator.
-            sensor_name(str): The name of the Sensor on the alarm panel.
-            state(str): The state of the sensor. (on or off)
-            index(int): The index in the coordinator's data list of the sensor's state.
+            coordinator (OlarmCoordinator): The Data Update Coordinator.
+            sensor_name (str): The name of the Sensor on the alarm panel.
+            state (str): The state of the sensor. (on or off)
+            index (int): The index in the coordinator's data list of the sensor's state.
         """
         self.coordinator = coordinator
         self.sensor_name = str(sensor_name) + " Bypass"
@@ -366,10 +339,26 @@ class OlarmBypassSensor(BinarySensorEntity):
         self.index = index
         self.last_changed = last_changed
 
+    async def async_added_to_hass(self):
+        """
+        Writing the state of the sensor to Home Assistant
+        """
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
+
+    async def async_update(self):
+        """Handling the updated data / updating the data."""
+        coordinator_update_success = await self.coordinator.update_data()
+        self._attr_is_on = self.coordinator.bypass_state[self.index]["state"] == "on"
+        self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
+        self.async_write_ha_state()
+        return coordinator_update_success
+
     @property
     def unique_id(self):
         """
-        DOCSTRING: The unique id for this entity sothat it can be managed from the ui.
+        The unique id for this entity sothat it can be managed from the ui.
         """
         return f"{self.coordinator.olarm_device_id}_{self.sensor_name}".replace(
             " ", ""
@@ -378,33 +367,27 @@ class OlarmBypassSensor(BinarySensorEntity):
     @property
     def name(self):
         """
-        DOCSTRING: The name of the zone from the ALarm Panel
+        The name of the zone from the ALarm Panel
         """
         name = []
         name1 = self.sensor_name.replace("_", " ")
         for item in str(name1).lower().split(" "):
             name.append(str(item).capitalize())
+
         return " ".join(name) + " (" + self.coordinator.olarm_device_name + ")"
 
     @property
     def is_on(self):
         """
-        DOCSTRING: Whether the sensor/zone is bypassed or not.
+        Whether the sensor/zone is bypassed or not.
         """
-        if self.coordinator.bypass_state[self.index]["state"] == "on":
-            # Zone Bypassed
-            self._attr_is_on = True
-            return True
-
-        else:
-            # Zone not bypassed
-            self._attr_is_on = False
-            return False
+        self._attr_is_on = self.coordinator.bypass_state[self.index]["state"] == "on"
+        return self._attr_is_on
 
     @property
     def icon(self):
         """
-        DOCSTRING: Setting the icon of the entity depending on the state of the zone.
+        Setting the icon of the entity depending on the state of the zone.
         """
         # Zone Bypass
         if self.is_on:
@@ -416,14 +399,14 @@ class OlarmBypassSensor(BinarySensorEntity):
     @property
     def available(self):
         """
-        DOCSTRING: Whether the entity is available. IE the coordinator updatees successfully.
+        Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update_success
+        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
 
     @property
     def device_state_attributes(self):
         """
-        DOCSTRING: The last time the state of the zone/ sensor changed on Olarm's side.
+        The last time the state of the zone/ sensor changed on Olarm's side.
         """
         self.last_changed = self.coordinator.bypass_state[self.index]["last_changed"]
         return {"last_tripped_time": self.last_changed, "zone_number": self.index + 1}
@@ -431,51 +414,19 @@ class OlarmBypassSensor(BinarySensorEntity):
     @property
     def device_info(self) -> dict:
         """Return device information about this entity."""
-        try:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
-            }
-
-        except DictionaryKeyError:
-            return {
-                "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-                "manufacturer": "Raine Pretorius",
-                "model": f"{self.coordinator.olarm_device_make}",
-                "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-                "sw_version": VERSION,
-                "hw_version": "Redo setup for integration",
-            }
-
-    async def async_added_to_hass(self):
-        """
-        DOCSTRING: Writing the state of the sensor to Home Assistant
-        """
-        self.async_on_remove(
-            self.coordinator.async_add_listener(self.async_write_ha_state)
-        )
+        return {
+            "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+            "manufacturer": "Raine Pretorius",
+            "model": f"{self.coordinator.olarm_device_make}",
+            "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
+            "sw_version": VERSION,
+            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+        }
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.coordinator.sensor_data[self.index][
-            "state"
-        ] == "on" and self._attr_is_on != (
-            self.coordinator.sensor_data[self.index]["state"] == "on"
-        ):
-            # Zone Active
-            self._attr_is_on = True
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
-
-        else:
-            # Zone not active
-            self._attr_is_on = False
-            self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
-            self.async_write_ha_state()
-        
+        self._attr_is_on = self.coordinator.bypass_state[self.index]["state"] == "on"
+        self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
         self.async_write_ha_state()
+

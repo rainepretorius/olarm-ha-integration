@@ -1,7 +1,11 @@
 {
     "config": {
         "error": {
-            "invalid_credentials": "The API key provided is not valid."
+            "invalid_credentials": "The API key provided is not valid.",
+            "device_number_changed": "The amount of Olarm Devices changed. Please select the correct devices for this instance under options."
+        },
+        "warning": {
+            "device_number_changed": "The amount of Olarm Devices changed. Please select the correct devices for this instance under options."
         },
         "step": {
             "user": {
@@ -24,7 +28,8 @@
                 "data": {
                     "api_key": "Olarm API key to connect to Olarm's API.",
                     "scan_interval": "The interval (s) to wait before updating the sensors and areas.",
-                    "olarm_arm_code": "The code for alarm actions. Leave default for no code."
+                    "olarm_arm_code": "The code for alarm actions. Leave default for no code.",
+                    "selected_olarm_devices": "The Olarm devices to load into this Home Assistant instance."
                 }
             }
         }
