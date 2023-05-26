@@ -34,7 +34,8 @@ async def async_setup_entry(
         LOGGER.info("Setting up Alarm Panels for device (%s)", device["deviceName"])
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
-        await coordinator.async_get_data()
+        if datetime.now() - coordinator.last_update > timedelta(seconds=30):
+            await coordinator.async_get_data()
 
         for sensor in coordinator.panel_state:
             LOGGER.info(
@@ -170,12 +171,20 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
+        return (
+            self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+            and self.coordinator.device_online
+        )
 
     @property
     def last_changed(self) -> str | None:
         """Return the last change triggered by."""
         return self._last_changed
+
+    @property
+    def should_poll(self):
+        """Disable polling."""
+        return False
 
     @property
     def extra_state_attributes(self) -> dict | None:
@@ -280,30 +289,6 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
         except ListIndexError:
             LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
-
-        try:
-            self._changed_by = self.coordinator.changed_by[self.area]
-
-        except ListIndexError:
-            LOGGER.debug("Could not set alarm panel changed by")
-
-        try:
-            self._last_changed = self.coordinator.last_changed[self.area]
-
-        except ListIndexError:
-            LOGGER.debug("Could not set alarm panel last changed")
-
-        try:
-            self._last_action = self.coordinator.last_action[self.area]
-
-        except ListIndexError:
-            LOGGER.debug("Could not set alarm panel last action")
-
-        try:
-            self._area_trigger = self.coordinator.area_triggers[self.area - 1]
-
-        except ListIndexError:
-            LOGGER.debug("Could not set alarm panel trigger")
 
         super()._handle_coordinator_update()
 

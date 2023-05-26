@@ -25,7 +25,8 @@ async def async_setup_entry(
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-        await coordinator.async_get_data()
+        if datetime.now() - coordinator.last_update > timedelta(seconds=30):
+            await coordinator.async_get_data()
 
         LOGGER.info(
             "Setting up Olarm buttons for device (%s)", coordinator.olarm_device_name
@@ -86,7 +87,7 @@ async def async_setup_entry(
             "Added Olarm data refresh button for device (%s)",
             coordinator.olarm_device_name,
         )
-    
+
     async_add_entities(entities)
     LOGGER.info("Added Olarm pgm and utility key buttons")
     return True
@@ -140,7 +141,10 @@ class PGMButtonEntity(Entity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
+        return (
+            self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+            and self.coordinator.device_online
+        )
 
     @property
     def name(self):
@@ -206,9 +210,10 @@ class UKeyButtonEntity(Entity):
         return None
 
     async def async_update(self):
-        await self.coordinator.async_update_data()
+        if datetime.now() - self.coordinator.last_update > timedelta(seconds=30):
+            # Only update the state from the api if it has been more than 30s since the last update.
+            await self.coordinator.async_update_data()
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
-        self.async_write_ha_state()
 
     async def async_press(self):
         """Turn the custom button entity on."""
@@ -233,7 +238,10 @@ class UKeyButtonEntity(Entity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
+        return (
+            self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+            and self.coordinator.device_online
+        )
 
     @property
     def name(self):

@@ -2,7 +2,12 @@
 import aiohttp
 import time
 from .const import LOGGER
-from .exceptions import APIClientConnectorError, ListIndexError, DictionaryKeyError, APINotFoundError
+from .exceptions import (
+    APIClientConnectorError,
+    ListIndexError,
+    DictionaryKeyError,
+    APINotFoundError,
+)
 from datetime import datetime, timedelta
 
 
@@ -41,7 +46,14 @@ class OlarmApi:
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
                     headers=self.headers,
                 ) as response:
-                    return await response.json()
+                    try:
+                        return await response.json()
+
+                    except aiohttp.client_exceptions.ContentTypeError:
+                        LOGGER.warning(
+                            "Your refresh interval is set too frequent for the Olarm API to handle. Please set it to a higher duration and regenerate your API key as it has been blocked."
+                        )
+                        return {}
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
@@ -85,7 +97,7 @@ class OlarmApi:
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Changed By error\n%s", ex)
             return return_data
-        
+
         except APINotFoundError as ex:
             LOGGER.error("Olarm API Changed By error\n%s", ex)
             return return_data
@@ -96,7 +108,7 @@ class OlarmApi:
 
         return (dict):\tThe device json from Olarm.
         """
-        return await self.get_devices_json()
+        return await self.get_device_json()
 
     async def get_sensor_states(self, devices_json) -> list:
         """
@@ -125,7 +137,7 @@ class OlarmApi:
                         "%a %b  %d %X %Y",
                     )
                     last_changed = last_changed.strftime("%a %d %b %Y %X")
-                
+
                 except TypeError:
                     last_changed = None
 
@@ -146,10 +158,10 @@ class OlarmApi:
                         "state": state,
                         "last_changed": last_changed,
                         "type": zone_type,
-                        "zone_number": zone
+                        "zone_number": zone,
                     }
                 )
-            
+
             zone = zone + 1
             for key, value in olarm_state["power"].items():
                 sensortype = 1000
@@ -162,14 +174,14 @@ class OlarmApi:
                 if key == "Batt":
                     key = "Battery"
                     sensortype = 1001
-                    
+
                 self.data.append(
                     {
                         "name": f"Powered by {key}",
                         "state": state,
                         "last_changed": None,
                         "type": sensortype,
-                        "zone_number": zone
+                        "zone_number": zone,
                     }
                 )
                 zone = zone + 1
@@ -221,7 +233,7 @@ class OlarmApi:
                         "name": zone_name,
                         "state": state,
                         "last_changed": last_changed,
-                        "zone_number": zone
+                        "zone_number": zone,
                     }
                 )
 
@@ -248,7 +260,7 @@ class OlarmApi:
         for area_num in range(area_count):
             try:
                 if olarm_zones[area_num] == "":
-                    LOGGER.warn(
+                    LOGGER.warning(
                         "This device's area names have not been set up in Olarm, generating automatically"
                     )
                     olarm_zones[area_num] = f"Area {area_num + 1}"
@@ -258,7 +270,7 @@ class OlarmApi:
                         {
                             "name": f"{olarm_zones[area_num]}",
                             "state": olarm_state["areas"][area_num],
-                            "area_number": area_num + 1
+                            "area_number": area_num + 1,
                         }
                     )
 
@@ -520,9 +532,25 @@ class OlarmSetupApi:
                     "https://apiv4.olarm.co/api/v4/devices",
                     headers=self.headers,
                 ) as response:
-                    olarm_resp = await response.json()
-                    self.data = olarm_resp["data"]
-                    return self.data
+                    try:
+                        olarm_resp = await response.json()
+                        self.data = olarm_resp["data"]
+                        return self.data
+
+                    except aiohttp.client_exceptions.ContentTypeError:
+                        text = await response.text()
+                        if "Forbidden" in text:
+                            LOGGER.error(
+                                "Could not get JSON data. Your api key has been blocked due to too many frequent updates. Please regenerate the api key"
+                            )
+                            return []
+
+                        else:
+                            LOGGER.error(
+                                "The api returned text instead of JSON. The text is:\n%s",
+                                text,
+                            )
+                            return []
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm SetupAPI Devices error\n%s", ex)

@@ -10,7 +10,7 @@ from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 import time
 from datetime import datetime, timedelta
-from .exceptions import ListIndexError, ClientConnectorError
+from .exceptions import ListIndexError, ClientConnectorError, APIContentTypeError
 
 
 class OlarmCoordinator(DataUpdateCoordinator):
@@ -84,15 +84,18 @@ class OlarmCoordinator(DataUpdateCoordinator):
                 self.hass.data.setdefault(DOMAIN, {})
                 self.hass.data[DOMAIN][device["deviceId"]] = coordinator
                 self.hass.data[DOMAIN]["devices"] = devices
-        
+
         except ClientConnectorError as ex:
-            LOGGER.error("Could not check for new Olarm devices connected to your account.\nError:%s", ex)
+            LOGGER.error(
+                "Could not check for new Olarm devices connected to your account.\nError:%s",
+                ex,
+            )
 
         devices_json = await self.api.get_device_json()
         if bool(devices_json):
             # Checking if the device is online.
             self.device_online = devices_json["deviceStatus"].lower() == "online"
-            
+
             # Getting the sesor states for each zone.
             self.data = await self.api.get_sensor_states(devices_json)
             self.sensor_data = self.data
@@ -104,31 +107,6 @@ class OlarmCoordinator(DataUpdateCoordinator):
             # Getting the Bypass Information
             self.bypass_data = await self.api.get_sensor_bypass_states(devices_json)
             self.bypass_state = self.bypass_data
-
-            try:
-                # Getting the device profile
-                for i in range(devices_json["deviceProfile"]["areasLimit"]):
-                    change_json = await self.api.get_changed_by_json(i + 1)
-                    self.last_changed[i + 1] = datetime.strptime(
-                        time.ctime(
-                            int(devices_json["deviceState"]["areasStamp"][i - 1] / 1000)
-                        ),
-                        "%a %b  %d %X %Y",
-                    ) + timedelta(hours=2)
-                    self.last_changed[i + 1] = self.last_changed[i + 1].strftime(
-                        "%a %d %b %Y %X"
-                    )
-                    self.last_action[i + 1] = OLARM_CHANGE_TO_HA[
-                        change_json["actionCmd"]
-                    ]
-
-            except ListIndexError:
-                LOGGER.warning(
-                    "The area settings in the Olarm App is incorrect. It is currently set to %s and needs to be set to %s for device: (%s)",
-                    devices_json["deviceProfile"]["areasLimit"],
-                    len(devices_json["deviceState"]["areasStamp"]),
-                    self.olarm_device_name,
-                )
 
             # Getting PGM Data
             self.pgm_data = await self.api.get_pgm_zones(devices_json)
@@ -155,3 +133,73 @@ class OlarmCoordinator(DataUpdateCoordinator):
         """Update data via Olarm's API"""
         return await self.update_data()
 
+    async def async_update_sensor_data(self):
+        """
+        Called to update the data for the zone sensors for the integration from Olarm's API.
+        """
+        devices_json = await self.api.get_device_json()
+        if bool(devices_json):
+            # Checking if the device is online.
+            self.device_online = devices_json["deviceStatus"].lower() == "online"
+
+            # Getting the sesor states for each zone.
+            self.data = await self.api.get_sensor_states(devices_json)
+            self.sensor_data = self.data
+
+        else:
+            LOGGER.warning("Olarm Sensors:\ndevices_json is empty, skipping update")
+
+        return self.last_update_success
+
+    async def async_update_bypass_data(self):
+        """
+        Called to update the data for the integration from Olarm's API.
+        """
+        devices_json = await self.api.get_device_json()
+        if bool(devices_json):
+            # Getting the Bypass Information
+            self.bypass_data = await self.api.get_sensor_bypass_states(devices_json)
+            self.bypass_state = self.bypass_data
+
+        else:
+            LOGGER.warning(
+                "Olarm Sensors:\ndevices_json is empty, skipping update of bypass sensors"
+            )
+
+        return self.last_update_success
+
+    async def async_update_panel_data(self):
+        """
+        Called to update the data for the integration from Olarm's API.
+        """
+        devices_json = await self.api.get_device_json()
+        if bool(devices_json):
+            # Getting the Area Information
+            self.panel_data = await self.api.get_panel_states(devices_json)
+            self.panel_state = self.panel_data
+
+        else:
+            LOGGER.warning(
+                "Olarm Sensors:\ndevices_json is empty, skipping update of alarm panels"
+            )
+            self.last_update_success = False
+
+        return self.last_update_success
+
+    async def async_update_pgm_ukey_data(self):
+        """
+        Called to update the data for the integration from Olarm's API.
+        """
+        devices_json = await self.api.get_device_json()
+        if bool(devices_json):
+            # Getting PGM Data
+            self.pgm_data = await self.api.get_pgm_zones(devices_json)
+            # Getting Ukey Data
+            self.ukey_data = await self.api.get_ukey_zones(devices_json)
+
+        else:
+            LOGGER.warning(
+                "Olarm Sensors:\ndevices_json is empty, skipping update of buttons"
+            )
+
+        return self.last_update_success

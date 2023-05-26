@@ -25,7 +25,8 @@ async def async_setup_entry(
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-        await coordinator.async_get_data()
+        if datetime.now() - coordinator.last_update > timedelta(seconds=30):
+            await coordinator.async_get_data()
 
         LOGGER.info(
             "Setting up Olarm switches for device (%s)", coordinator.olarm_device_name
@@ -102,13 +103,15 @@ class BypassSwitchEntity(SwitchEntity):
     async def async_turn_on(self, **kwargs):
         """Turn on the zone bypass."""
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
-        await self.async_update()
+        await self.coordinator.async_update_bypass_data()
+        await self.async_write_ha_state()
         return ret
 
     async def async_turn_off(self, **kwargs):
         """Turn off the zone bypass."""
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
-        await self.async_update()
+        await self.coordinator.async_update_bypass_data()
+        await self.async_write_ha_state()
         return ret
 
     async def async_added_to_hass(self):
@@ -121,16 +124,20 @@ class BypassSwitchEntity(SwitchEntity):
 
     async def async_update(self):
         """Handle the update of the new/updated data."""
-        await self.coordinator.update_data()
+        if datetime.now() - self.coordinator.last_update > timedelta(seconds=30):
+            # Only update the state from the api if it has been more than 30s since the last update.
+            await self.coordinator.async_update_bypass_data()
         self._state = self.coordinator.bypass_state[self.index]["state"]
-        self.async_write_ha_state()
 
     @property
     def available(self):
         """
         Whether the entity is available. IE the coordinator updates successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
+        return (
+            self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+            and self.coordinator.device_online
+        )
 
     @property
     def name(self):
@@ -226,7 +233,7 @@ class PGMSwitchEntity(SwitchEntity):
         self.post_data = {"actionCmd": "pgm-close", "actionNum": self._pgm_number}
 
         ret = await self.coordinator.api.update_pgm(self.post_data)
-        ret = await self.coordinator.update_data()
+        await self.coordinator.async_update_pgm_ukey_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_write_ha_state()
@@ -238,7 +245,7 @@ class PGMSwitchEntity(SwitchEntity):
         self.post_data = {"actionCmd": "pgm-open", "actionNum": self._pgm_number}
 
         ret = await self.coordinator.api.update_pgm(self.post_data)
-        ret = await self.coordinator.update_data()
+        await self.coordinator.async_update_pgm_ukey_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_write_ha_state()
@@ -254,7 +261,10 @@ class PGMSwitchEntity(SwitchEntity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
+        return (
+            self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+            and self.coordinator.device_online
+        )
 
     @property
     def name(self):

@@ -21,7 +21,6 @@ Binary sensors are used for simple alarm panel zones and sensors. The folowing a
 3.) Window Sensors (BinarySensorDeviceClass.WINDOW)<br />
 4.) Powered by AC (BinarySensorDeviceClass.PLUG)<br />
 5.) Powered by Battery (BinarySensorDeviceClass.POWER)<br />
-6.) Bypasss states of each zone on the panel. (On=bypassed, Off=active)<br />
 
 # Alarm Control Panel #
 There is an alarm control panel for each area enabled on your alarm panel. This allows you to set the state of each area individually. If you have a nemtek electric fence. It is currently coded to enable arming and disarming of the electric fence.<br />
