@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Add binary sensors for Olarm alarm sensor and panel states."""
+    """Add Buttons for Olarm alarm sensor and panel states."""
 
     # Defining the list to store the instances of each alarm zone.
     entities = []
@@ -32,6 +32,9 @@ async def async_setup_entry(
         if datetime.now() - coordinator.last_update > timedelta(
             seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
         ):
+            LOGGER.warning("Updating data Button")
+            LOGGER.warning(datetime.now() - coordinator.last_update)
+            LOGGER.warning("Button Done")
             await coordinator.async_get_data()
 
         LOGGER.info(

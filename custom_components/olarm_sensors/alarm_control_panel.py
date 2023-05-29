@@ -42,6 +42,9 @@ async def async_setup_entry(
         if datetime.now() - coordinator.last_update > timedelta(
             seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
         ):
+            LOGGER.warning("Updating data alarm panel")
+            LOGGER.warning(datetime.now() - coordinator.last_update)
+            LOGGER.warning("alarm panel Done")
             await coordinator.async_get_data()
 
         for sensor in coordinator.panel_state:

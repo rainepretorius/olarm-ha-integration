@@ -38,6 +38,9 @@ async def async_setup_entry(
         if datetime.now() - coordinator.last_update > timedelta(
             seconds=(1.5 * coordinator.entry.data[CONF_SCAN_INTERVAL])
         ):
+            LOGGER.warning("Updating data binary sensor")
+            LOGGER.warning(datetime.now() - coordinator.last_update)
+            LOGGER.warning("Binary Sensor Done")
             await coordinator.async_get_data()
 
         LOGGER.info(

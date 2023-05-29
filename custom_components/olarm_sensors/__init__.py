@@ -70,9 +70,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # Generating services file
     filedata = []
     for device in devices:
-        if not device['deviceName'] in config_entry.data[CONF_OLARM_DEVICES]:
+        if not device["deviceName"] in config_entry.data[CONF_OLARM_DEVICES]:
             continue
-        
+
         LOGGER.info(
             "Setting up Olarm device (%s) with device id: %s",
             device["deviceName"],
@@ -261,25 +261,23 @@ async def update_listener(hass: HomeAssistant, config_entry):
             options[OLARM_DEVICE_AMOUNT] = data[OLARM_DEVICE_AMOUNT]
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
-    
+
     try:
-        if config_entry.options[CONF_SCAN_INTERVAL] < 30 or config_entry.data[CONF_SCAN_INTERVAL] < 30:
-            if len(devices) > 1:
-                data = {**config_entry.data}
+        if (
+            config_entry.options[CONF_SCAN_INTERVAL] < 30
+            or config_entry.data[CONF_SCAN_INTERVAL] < 30
+        ):
+            data = {**config_entry.data}
 
-                data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL] = 30
+            data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL] = 30
 
-                options = {**config_entry.options}
+            options = {**config_entry.options}
 
-                hass.config_entries.async_update_entry(
-                    config_entry, data=data, options=options
-                )
-            
+            hass.config_entries.async_update_entry(
+                config_entry, data=data, options=options
+            )
+
     except (DictionaryKeyError, KeyError):
-        data = {**config_entry.data}
-        options = {**config_entry.options}
-
-        if len(devices) > 1:
-            options[CONF_SCAN_INTERVAL] = data[CONF_SCAN_INTERVAL] = 30
+        pass
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)

@@ -20,6 +20,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
     changed_by: dict = {1: None, 2: None}
     last_changed: dict = {1: time.ctime(), 2: time.ctime()}
     last_action: dict = {1: None, 2: None}
+    device_online: bool = True
 
     def __init__(
         self,

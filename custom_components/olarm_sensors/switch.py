@@ -33,6 +33,9 @@ async def async_setup_entry(
         if datetime.now() - coordinator.last_update > timedelta(
             seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
         ):
+            LOGGER.warning("Updating data switch")
+            LOGGER.warning(datetime.now() - coordinator.last_update)
+            LOGGER.warning("switch Done")
             await coordinator.async_get_data()
 
         LOGGER.info(
