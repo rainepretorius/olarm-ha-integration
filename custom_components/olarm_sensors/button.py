@@ -9,6 +9,7 @@ from .const import CONF_DEVICE_FIRMWARE
 from .const import LOGGER
 from .const import DOMAIN
 from .const import VERSION
+from .const import CONF_OLARM_DEVICES
 from datetime import datetime, timedelta
 
 
@@ -21,11 +22,13 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
+        if not device['deviceName'] in entry.data[CONF_OLARM_DEVICES]:
+            continue
         # Creating an instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-        if datetime.now() - coordinator.last_update > timedelta(seconds=30):
+        if datetime.now() - coordinator.last_update > timedelta(seconds=60):
             await coordinator.async_get_data()
 
         LOGGER.info(
@@ -210,8 +213,8 @@ class UKeyButtonEntity(Entity):
         return None
 
     async def async_update(self):
-        if datetime.now() - self.coordinator.last_update > timedelta(seconds=30):
-            # Only update the state from the api if it has been more than 30s since the last update.
+        if datetime.now() - self.coordinator.last_update > timedelta(seconds=60):
+            # Only update the state from the api if it has been more than 60s since the last update.
             await self.coordinator.async_update_data()
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
 

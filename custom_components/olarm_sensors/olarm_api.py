@@ -541,8 +541,12 @@ class OlarmSetupApi:
                         text = await response.text()
                         if "Forbidden" in text:
                             LOGGER.error(
-                                "Could not get JSON data. Your api key has been blocked due to too many frequent updates. Please regenerate the api key"
+                                "Could not get JSON data. Your API key is incorrect."
                             )
+                            return []
+                        
+                        elif "Too Many Requests" in text:
+                            LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
                             return []
 
                         else:

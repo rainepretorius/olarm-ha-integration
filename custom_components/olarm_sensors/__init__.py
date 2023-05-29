@@ -22,10 +22,7 @@ from .const import (
     CONF_OLARM_DEVICES,
     OLARM_DEVICE_AMOUNT,
 )
-from homeassistant.helpers import config_validation as cv
-from homeassistant.const import (
-    CONF_API_KEY,
-)
+from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
 from .exceptions import DictionaryKeyError
 import os
 import voluptuous as vol
@@ -73,6 +70,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # Generating services file
     filedata = []
     for device in devices:
+        if not device['deviceName'] in config_entry.data[CONF_OLARM_DEVICES]:
+            continue
+        
         LOGGER.info(
             "Setting up Olarm device (%s) with device id: %s",
             device["deviceName"],
@@ -161,6 +161,27 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def update_listener(hass: HomeAssistant, config_entry):
     """Handle options update."""
+    
+    # Updating the interval if more than two devices.
+    setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
+    try:
+        devices = await setup_api.get_olarm_devices()
+        
+    except Exception:
+        devices = []
+    
+    if config_entry.options[CONF_SCAN_INTERVAL] < 30 or config_entry.data[CONF_SCAN_INTERVAL]:
+        if len(devices) > 1:
+            data = {**config_entry.data}
+
+            data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL] = 30
+
+            options = {**config_entry.options}
+
+            hass.config_entries.async_update_entry(
+                config_entry, data=data, options=options
+            )
+        
     try:
         if not config_entry.options[CONF_API_KEY] == config_entry.data[CONF_API_KEY]:
             data = {**config_entry.data}

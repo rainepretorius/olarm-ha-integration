@@ -14,6 +14,7 @@ from .const import CONF_DEVICE_FIRMWARE
 from .const import DOMAIN
 from .const import VERSION
 from .const import OLARM_ZONE_TYPE_TO_HA
+from .const import CONF_OLARM_DEVICES
 from .exceptions import DictionaryKeyError
 from datetime import datetime, timedelta
 
@@ -26,11 +27,15 @@ async def async_setup_entry(
     # Defining the list to store the instances of each alarm zone.
     entities = []
     for device in hass.data[DOMAIN]["devices"]:
+        
+        if not device['deviceName'] in entry.data[CONF_OLARM_DEVICES]:
+            continue
+        
         # Creating an instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
         # Getting the first setup data from Olarm. eg: Getting all the zones and their info.
-        if datetime.now() - coordinator.last_update > timedelta(seconds=30):
+        if datetime.now() - coordinator.last_update > timedelta(seconds=60):
             await coordinator.async_get_data()
 
         LOGGER.info(
@@ -160,8 +165,8 @@ class OlarmSensor(BinarySensorEntity):
         Returns:
             boolean: Whether tthe update worked.
         """
-        if datetime.now() - self.coordinator.last_update > timedelta(seconds=30):
-            # Only update the state from the api if it has been more than 30s since the last update.
+        if datetime.now() - self.coordinator.last_update > timedelta(seconds=60):
+            # Only update the state from the api if it has been more than 60s since the last update.
             await self.coordinator.async_update_sensor_data()
 
         self._attr_is_on = self.coordinator.sensor_data[self.index]["state"] == "on"

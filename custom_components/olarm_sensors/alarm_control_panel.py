@@ -16,6 +16,7 @@ from .const import LOGGER
 from .const import VERSION
 from .const import CONF_DEVICE_FIRMWARE
 from .const import CONF_ALARM_CODE
+from .const import CONF_OLARM_DEVICES
 from .coordinator import OlarmCoordinator
 from .exceptions import ListIndexError, CodeTypeError
 from datetime import datetime, timedelta
@@ -31,10 +32,13 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
+        if not device['deviceName'] in entry.data[CONF_OLARM_DEVICES]:
+            continue
+        
         LOGGER.info("Setting up Alarm Panels for device (%s)", device["deviceName"])
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
-        if datetime.now() - coordinator.last_update > timedelta(seconds=30):
+        if datetime.now() - coordinator.last_update > timedelta(seconds=60):
             await coordinator.async_get_data()
 
         for sensor in coordinator.panel_state:
