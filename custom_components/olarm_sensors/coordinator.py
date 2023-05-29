@@ -1,16 +1,14 @@
 """Module that stores the Coordinator class to update the data from the api."""
 from __future__ import annotations
-import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
-from homeassistant.util import aiohttp
-from .const import LOGGER, OLARM_CHANGE_TO_HA, DOMAIN
+from .const import LOGGER, DOMAIN
 from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 import time
 from datetime import datetime, timedelta
-from .exceptions import ListIndexError, ClientConnectorError, APIContentTypeError
+from .exceptions import ClientConnectorError
 
 
 class OlarmCoordinator(DataUpdateCoordinator):
