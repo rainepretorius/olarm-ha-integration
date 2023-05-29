@@ -10,6 +10,7 @@ from homeassistant.core import callback
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.const import CONF_SCAN_INTERVAL
 from .const import OLARM_STATE_TO_HA
 from .const import DOMAIN
 from .const import LOGGER
@@ -32,13 +33,15 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
-        if not device['deviceName'] in entry.data[CONF_OLARM_DEVICES]:
+        if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
             continue
-        
+
         LOGGER.info("Setting up Alarm Panels for device (%s)", device["deviceName"])
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
-        if datetime.now() - coordinator.last_update > timedelta(seconds=60):
+        if datetime.now() - coordinator.last_update > timedelta(
+            seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
+        ):
             await coordinator.async_get_data()
 
         for sensor in coordinator.panel_state:

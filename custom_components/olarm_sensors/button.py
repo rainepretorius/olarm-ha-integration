@@ -5,6 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.core import callback
+from homeassistant.const import CONF_SCAN_INTERVAL
 from .const import CONF_DEVICE_FIRMWARE
 from .const import LOGGER
 from .const import DOMAIN
@@ -22,13 +23,15 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
-        if not device['deviceName'] in entry.data[CONF_OLARM_DEVICES]:
+        if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
             continue
         # Creating an instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-        if datetime.now() - coordinator.last_update > timedelta(seconds=60):
+        if datetime.now() - coordinator.last_update > timedelta(
+            seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
+        ):
             await coordinator.async_get_data()
 
         LOGGER.info(
@@ -213,7 +216,9 @@ class UKeyButtonEntity(Entity):
         return None
 
     async def async_update(self):
-        if datetime.now() - self.coordinator.last_update > timedelta(seconds=60):
+        if datetime.now() - self.coordinator.last_update > timedelta(
+            seconds=(1.5 * self.coordinator.entry.data[CONF_SCAN_INTERVAL])
+        ):
             # Only update the state from the api if it has been more than 60s since the last update.
             await self.coordinator.async_update_data()
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]

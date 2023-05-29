@@ -161,27 +161,6 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def update_listener(hass: HomeAssistant, config_entry):
     """Handle options update."""
-    
-    # Updating the interval if more than two devices.
-    setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
-    try:
-        devices = await setup_api.get_olarm_devices()
-        
-    except Exception:
-        devices = []
-    
-    if config_entry.options[CONF_SCAN_INTERVAL] < 30 or config_entry.data[CONF_SCAN_INTERVAL]:
-        if len(devices) > 1:
-            data = {**config_entry.data}
-
-            data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL] = 30
-
-            options = {**config_entry.options}
-
-            hass.config_entries.async_update_entry(
-                config_entry, data=data, options=options
-            )
-        
     try:
         if not config_entry.options[CONF_API_KEY] == config_entry.data[CONF_API_KEY]:
             data = {**config_entry.data}
@@ -280,5 +259,27 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         if data[OLARM_DEVICE_AMOUNT] is not None:
             options[OLARM_DEVICE_AMOUNT] = data[OLARM_DEVICE_AMOUNT]
+
+        hass.config_entries.async_update_entry(config_entry, data=data, options=options)
+    
+    try:
+        if config_entry.options[CONF_SCAN_INTERVAL] < 30 or config_entry.data[CONF_SCAN_INTERVAL] < 30:
+            if len(devices) > 1:
+                data = {**config_entry.data}
+
+                data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL] = 30
+
+                options = {**config_entry.options}
+
+                hass.config_entries.async_update_entry(
+                    config_entry, data=data, options=options
+                )
+            
+    except (DictionaryKeyError, KeyError):
+        data = {**config_entry.data}
+        options = {**config_entry.options}
+
+        if len(devices) > 1:
+            options[CONF_SCAN_INTERVAL] = data[CONF_SCAN_INTERVAL] = 30
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
