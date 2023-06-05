@@ -9,7 +9,8 @@
         "@rainepretorius"
     ],
     "requirements": [
-        "aiohttp"
+        "aiohttp",
+        "async_lru"
     ],
     "config_flow": true,
     "entrypoint": "olarm_sensors",
