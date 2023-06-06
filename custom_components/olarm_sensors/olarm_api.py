@@ -1,5 +1,6 @@
 """Module to interact with the Olarm API."""
 import aiohttp
+from async_lru import alru_cache
 import time
 from .const import LOGGER
 from .exceptions import (
@@ -38,6 +39,7 @@ class OlarmApi:
             "Sec-Ch-Ua": '"Google Chrome";v="113", "Chromium";v="113", "Not-A.Brand";v="24"',
         }
 
+    @alru_cache(ttl=5)
     async def get_device_json(self) -> dict:
         """
         This method gets and returns the data from the Olarm API for a spesific device:
@@ -63,6 +65,7 @@ class OlarmApi:
             LOGGER.error("Olarm API Devices error\n%s", ex)
             return {}
 
+    @alru_cache(ttl=5)
     async def get_changed_by_json(self, area) -> dict:
         """
         DOCSTRING:\tGets the actions for a spesific device from Olarm and returns the user that last chenged the state of an Area.
@@ -486,6 +489,7 @@ class OlarmApi:
         }
         return await self.send_action(post_data)
 
+    @alru_cache(ttl=5)
     async def get_all_devices(self) -> list:
         """
         This method gets and returns the devices from the Olarm API:
@@ -524,6 +528,7 @@ class OlarmSetupApi:
         self.data = []
         self.headers = {"Authorization": f"Bearer {api_key}"}
 
+    @alru_cache(ttl=5)
     async def get_olarm_devices(self) -> list:
         """
         This method gets and returns the devices from the Olarm API:
