@@ -1,18 +1,18 @@
 {
     "domain": "olarm_sensors",
     "name": "Olarm Sensors",
-    "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
-    "issue_tracker": "https://github.com/rainepretorius/olarm-ha-integration/issues",
-    "quality_scale": "silver",
-    "dependencies": [],
     "codeowners": [
         "@rainepretorius"
     ],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
+    "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/rainepretorius/olarm-ha-integration/issues",
+    "quality_scale": "silver",
     "requirements": [
         "aiohttp",
         "async_lru"
     ],
-    "config_flow": true,
-    "iot_class": "cloud_polling",
     "version": "2.1.5"
 }
