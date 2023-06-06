@@ -87,6 +87,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device_make=device["deviceAlarmType"],
         )
 
+        await coordinator.update_data()
+
         hass.data[DOMAIN][device["deviceId"]] = coordinator
 
         LOGGER.info(
@@ -97,6 +99,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         device_name_for_ha = "_".join(device["deviceName"].lower().split(" "))
 
+        await asyncio.sleep(delay=5)
+        
         # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
         OLARM_API = OlarmApi(
             device_id=device["deviceId"],
@@ -262,22 +266,5 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
-    try:
-        if (
-            config_entry.options[CONF_SCAN_INTERVAL] < 30
-            or config_entry.data[CONF_SCAN_INTERVAL] < 30
-        ):
-            data = {**config_entry.data}
-
-            data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL] = 30
-
-            options = {**config_entry.options}
-
-            hass.config_entries.async_update_entry(
-                config_entry, data=data, options=options
-            )
-
-    except (DictionaryKeyError, KeyError):
-        pass
-
+    
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
