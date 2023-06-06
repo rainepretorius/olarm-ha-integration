@@ -13,7 +13,6 @@
         "async_lru"
     ],
     "config_flow": true,
-    "entrypoint": "olarm_sensors",
     "iot_class": "cloud_polling",
     "version": "2.1.5"
 }
