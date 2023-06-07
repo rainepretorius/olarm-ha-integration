@@ -11,7 +11,7 @@ from homeassistant.const import (
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 
-VERSION = "2.1.0"
+VERSION = "2.1.7"
 DOMAIN = "olarm_sensors"
 AuthenticationError = "invalid_credentials"
 DeviceIDError = "invalid_device_id"
@@ -42,7 +42,7 @@ OLARM_CHANGE_TO_HA = {
     "area-sleep": STATE_ALARM_ARMED_NIGHT,
     "area-arm": STATE_ALARM_ARMED_AWAY,
     None: None,
-    'null': None
+    "null": None,
 }
 OLARM_ZONE_TYPE_TO_HA = {
     "": BinarySensorDeviceClass.MOTION,

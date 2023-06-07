@@ -4,9 +4,6 @@
             "invalid_credentials": "The API key provided is not valid.",
             "device_number_changed": "The amount of Olarm Devices changed. Please select the correct devices for this instance under options."
         },
-        "warning": {
-            "device_number_changed": "The amount of Olarm Devices changed. Please select the correct devices for this instance under options."
-        },
         "step": {
             "user": {
                 "description": "This integration uses the Olarm API (https://user.olarm.co/#/api) to control your Olarm Devices. Please enter your API key to continue:",

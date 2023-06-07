@@ -22,13 +22,11 @@ from .const import (
     CONF_OLARM_DEVICES,
     OLARM_DEVICE_AMOUNT,
 )
-from homeassistant.helpers import config_validation as cv
-from homeassistant.const import (
-    CONF_API_KEY,
-)
+from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
 from .exceptions import DictionaryKeyError
 import os
 import voluptuous as vol
+from homeassistant.exceptions import ConfigEntryNotReady
 
 
 path = os.path.abspath(__file__).replace("__init__.py", "")
@@ -44,11 +42,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """
     This function handles the setup of the Olarm integration. It creates a coordinator instance, registers services for each zone, and forwards the setup for binary sensors.
     """
+    # Updating and syncing options and integration data.
+    await update_listener(hass, config_entry)
 
     # Getting the devices assosiated with the users account.
     setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
-    devices = await setup_api.get_olarm_devices()
-    device_len_changed = False
+    try:
+        devices = await setup_api.get_olarm_devices()
+
+    except:
+        raise ConfigEntryNotReady(
+            "Could not connect to the Olarm Api to get the devices linked to your Olarm account"
+        )
 
     if len(devices) > int(config_entry.data[OLARM_DEVICE_AMOUNT]):
         LOGGER.warning(
@@ -56,10 +61,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             int(config_entry.data[OLARM_DEVICE_AMOUNT]),
             len(devices),
         )
-        device_len_changed = True
-
-    # Updating and syncing options and integration data.
-    await update_listener(hass, config_entry)
 
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
 
@@ -69,6 +70,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # Generating services file
     filedata = []
     for device in devices:
+        if not device["deviceName"] in config_entry.data[CONF_OLARM_DEVICES]:
+            continue
+
         LOGGER.info(
             "Setting up Olarm device (%s) with device id: %s",
             device["deviceName"],
@@ -83,6 +87,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device_make=device["deviceAlarmType"],
         )
 
+        await coordinator.update_data()
+
         hass.data[DOMAIN][device["deviceId"]] = coordinator
 
         LOGGER.info(
@@ -92,7 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         )
 
         device_name_for_ha = "_".join(device["deviceName"].lower().split(" "))
-
+        
         # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
         OLARM_API = OlarmApi(
             device_id=device["deviceId"],
@@ -124,13 +130,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device["deviceId"],
         )
 
-    with open(
-        file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8"
-    ) as service_file:
+    with open(file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8") as service_file:
         for line in filedata:
             service_file.write(line)
 
-    # Forwarding the setup for the other Home Assistant platforms if it is not set up or a new device was added.
+    # Forwarding the setup for the other Home Assistant platforms.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     return True
@@ -157,8 +161,23 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def update_listener(hass: HomeAssistant, config_entry):
     """Handle options update."""
-    setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
-    devices = await setup_api.get_olarm_devices()
+    try:
+        if not config_entry.options[CONF_API_KEY] == config_entry.data[CONF_API_KEY]:
+            data = {**config_entry.data}
+            options = {**config_entry.options}
+
+            data[CONF_API_KEY] = options[CONF_API_KEY]
+
+            hass.config_entries.async_update_entry(
+                config_entry, data=data, options=options
+            )
+
+    except (DictionaryKeyError, KeyError):
+        data = {**config_entry.data}
+        options = {**config_entry.options}
+        options[CONF_API_KEY] = data[CONF_API_KEY]
+
+        hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
     try:
         if (
@@ -186,6 +205,9 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
+    # Getting all the devices.
+    setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
+    devices = await setup_api.get_olarm_devices()
     try:
         if (
             not config_entry.options[CONF_OLARM_DEVICES]
@@ -237,4 +259,7 @@ async def update_listener(hass: HomeAssistant, config_entry):
         if data[OLARM_DEVICE_AMOUNT] is not None:
             options[OLARM_DEVICE_AMOUNT] = data[OLARM_DEVICE_AMOUNT]
 
+        hass.config_entries.async_update_entry(config_entry, data=data, options=options)
+
+    
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)

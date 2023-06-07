@@ -5,27 +5,29 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.core import callback
+from homeassistant.const import CONF_SCAN_INTERVAL
 from .const import CONF_DEVICE_FIRMWARE
 from .const import LOGGER
 from .const import DOMAIN
 from .const import VERSION
+from .const import CONF_OLARM_DEVICES
 from datetime import datetime, timedelta
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Add binary sensors for Olarm alarm sensor and panel states."""
+    """Add Buttons for Olarm alarm sensor and panel states."""
 
     # Defining the list to store the instances of each alarm zone.
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
-        # Creating an instance of the DataCoordinator to update the data from Olarm.
+        if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
+            continue
+        
+        # Getting the instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
-
-        # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-        await coordinator.async_get_data()
 
         LOGGER.info(
             "Setting up Olarm buttons for device (%s)", coordinator.olarm_device_name
@@ -36,7 +38,7 @@ async def async_setup_entry(
         )
         # Looping through the pgm's for the panel.
         for sensor in coordinator.pgm_data:
-            # Creating a sensor for each zone on the alarm panel.
+            # Creating a butron for each pulse PGM on the alarm panel.
             if not sensor["pulse"]:
                 continue
 
@@ -60,7 +62,7 @@ async def async_setup_entry(
         )
         # Looping through the ukeys's for the panel.
         for sensor1 in coordinator.ukey_data:
-            # Creating a sensor for each zone on the alarm panel.
+            # Creating a button for each Utility Key on the alarm panel.
             ukey_button = UKeyButtonEntity(
                 coordinator=coordinator,
                 name=sensor1["name"],
@@ -86,7 +88,7 @@ async def async_setup_entry(
             "Added Olarm data refresh button for device (%s)",
             coordinator.olarm_device_name,
         )
-    
+
     async_add_entities(entities)
     LOGGER.info("Added Olarm pgm and utility key buttons")
     return True
@@ -140,7 +142,10 @@ class PGMButtonEntity(Entity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
+        return (
+            self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+            and self.coordinator.device_online
+        )
 
     @property
     def name(self):
@@ -154,7 +159,7 @@ class PGMButtonEntity(Entity):
 
     @property
     def should_poll(self):
-        """Disable polling."""
+        """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property
@@ -206,9 +211,13 @@ class UKeyButtonEntity(Entity):
         return None
 
     async def async_update(self):
-        await self.coordinator.async_update_data()
+        """
+        Updates the state of the zone sensor from the coordinator.
+
+        Returns:
+            boolean: Whether tthe update worked.
+        """
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
-        self.async_write_ha_state()
 
     async def async_press(self):
         """Turn the custom button entity on."""
@@ -233,7 +242,10 @@ class UKeyButtonEntity(Entity):
         """
         Whether the entity is available. IE the coordinator updatees successfully.
         """
-        return self.coordinator.last_update > datetime.now() - timedelta(minutes=2) and self.coordinator.device_online
+        return (
+            self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
+            and self.coordinator.device_online
+        )
 
     @property
     def name(self):
@@ -247,7 +259,7 @@ class UKeyButtonEntity(Entity):
 
     @property
     def should_poll(self):
-        """Disable polling."""
+        """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property

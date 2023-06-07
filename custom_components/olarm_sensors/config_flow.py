@@ -49,8 +49,10 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not user_input[CONF_SCAN_INTERVAL]:
                 errors[CONF_SCAN_INTERVAL] = "Scan interval is required."
 
-            elif user_input[CONF_SCAN_INTERVAL] < 1:
-                errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 1 second."
+            elif user_input[CONF_SCAN_INTERVAL] < 5:
+                errors[
+                    CONF_SCAN_INTERVAL
+                ] = "Scan interval must be at least 5 seconds."
 
             api_key = user_input[CONF_API_KEY]
             scan_interval = user_input[CONF_SCAN_INTERVAL]
@@ -114,10 +116,10 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_SCAN_INTERVAL,
                     msg="The update interval in seconds.",
                     description={
-                        "suggested_value": 5,
-                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 1 second.",
+                        "suggested_value": 10,
+                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 5 seconds.",
                     },
-                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                ): vol.All(vol.Coerce(int), vol.Range(min=5)),
                 vol.Optional(
                     CONF_ALARM_CODE,
                     msg="The code for alarm actions. Leave default for no code.",
@@ -166,9 +168,9 @@ class OlarmOptionsFlow(config_entries.OptionsFlow):
                     msg="The update interval in seconds.",
                     description={
                         "suggested_value": self.config_entry.data[CONF_SCAN_INTERVAL],
-                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 1 second.",
+                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 5 seconds.",
                     },
-                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                ): vol.All(vol.Coerce(int), vol.Range(min=5)),
                 vol.Optional(
                     CONF_ALARM_CODE,
                     msg="The code for alarm actions. Leave default for no code.",
