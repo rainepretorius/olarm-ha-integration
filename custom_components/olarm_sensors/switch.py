@@ -132,6 +132,7 @@ class BypassSwitchEntity(SwitchEntity):
         ):
             # Only update the state from the api if it has been more than 1.5 times the scan interval since the last update.
             await self.coordinator.async_update_bypass_data()
+        
         self._state = self.coordinator.bypass_state[self.index]["state"]
 
     @property

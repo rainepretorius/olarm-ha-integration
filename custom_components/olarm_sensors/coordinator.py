@@ -8,7 +8,7 @@ from .olarm_api import OlarmApi
 from homeassistant.config_entries import ConfigEntry
 import time
 from datetime import datetime, timedelta
-from .exceptions import ClientConnectorError
+from .exceptions import ClientConnectorError, APIContentTypeError
 
 
 class OlarmCoordinator(DataUpdateCoordinator):
@@ -89,6 +89,9 @@ class OlarmCoordinator(DataUpdateCoordinator):
                 "Could not check for new Olarm devices connected to your account.\nError:%s",
                 ex,
             )
+        
+        except APIContentTypeError as ex:
+            LOGGER.error("Could not retrieve devices connected to your account. The Invalid response is:\n%s", ex)
 
         devices_json = await self.api.get_device_json()
         if bool(devices_json):
