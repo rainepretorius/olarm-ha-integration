@@ -26,17 +26,10 @@ async def async_setup_entry(
         if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
             continue
 
-        # Creating an instance of the DataCoordinator to update the data from Olarm.
+        # Getting the instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-        if datetime.now() - coordinator.last_update > timedelta(
-            seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
-        ):
-            LOGGER.warning("Updating data switch")
-            LOGGER.warning(datetime.now() - coordinator.last_update)
-            LOGGER.warning("switch Done")
-            await coordinator.async_get_data()
 
         LOGGER.info(
             "Setting up Olarm switches for device (%s)", coordinator.olarm_device_name
@@ -137,7 +130,7 @@ class BypassSwitchEntity(SwitchEntity):
         if datetime.now() - self.coordinator.last_update > timedelta(
             seconds=(1.5 * self.coordinator.entry.data[CONF_SCAN_INTERVAL])
         ):
-            # Only update the state from the api if it has been more than 60s since the last update.
+            # Only update the state from the api if it has been more than 1.5 times the scan interval since the last update.
             await self.coordinator.async_update_bypass_data()
         self._state = self.coordinator.bypass_state[self.index]["state"]
 
@@ -173,7 +166,7 @@ class BypassSwitchEntity(SwitchEntity):
 
     @property
     def should_poll(self):
-        """Disable polling."""
+        """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property

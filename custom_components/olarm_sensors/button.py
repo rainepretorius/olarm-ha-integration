@@ -25,17 +25,9 @@ async def async_setup_entry(
     for device in hass.data[DOMAIN]["devices"]:
         if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
             continue
-        # Creating an instance of the DataCoordinator to update the data from Olarm.
+        
+        # Getting the instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
-
-        # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
-        if datetime.now() - coordinator.last_update > timedelta(
-            seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
-        ):
-            LOGGER.warning("Updating data Button")
-            LOGGER.warning(datetime.now() - coordinator.last_update)
-            LOGGER.warning("Button Done")
-            await coordinator.async_get_data()
 
         LOGGER.info(
             "Setting up Olarm buttons for device (%s)", coordinator.olarm_device_name
@@ -46,7 +38,7 @@ async def async_setup_entry(
         )
         # Looping through the pgm's for the panel.
         for sensor in coordinator.pgm_data:
-            # Creating a sensor for each zone on the alarm panel.
+            # Creating a butron for each pulse PGM on the alarm panel.
             if not sensor["pulse"]:
                 continue
 
@@ -70,7 +62,7 @@ async def async_setup_entry(
         )
         # Looping through the ukeys's for the panel.
         for sensor1 in coordinator.ukey_data:
-            # Creating a sensor for each zone on the alarm panel.
+            # Creating a button for each Utility Key on the alarm panel.
             ukey_button = UKeyButtonEntity(
                 coordinator=coordinator,
                 name=sensor1["name"],
@@ -167,7 +159,7 @@ class PGMButtonEntity(Entity):
 
     @property
     def should_poll(self):
-        """Disable polling."""
+        """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property
@@ -219,11 +211,12 @@ class UKeyButtonEntity(Entity):
         return None
 
     async def async_update(self):
-        if datetime.now() - self.coordinator.last_update > timedelta(
-            seconds=(1.5 * self.coordinator.entry.data[CONF_SCAN_INTERVAL])
-        ):
-            # Only update the state from the api if it has been more than 60s since the last update.
-            await self.coordinator.async_update_data()
+        """
+        Updates the state of the zone sensor from the coordinator.
+
+        Returns:
+            boolean: Whether tthe update worked.
+        """
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
 
     async def async_press(self):
@@ -266,7 +259,7 @@ class UKeyButtonEntity(Entity):
 
     @property
     def should_poll(self):
-        """Disable polling."""
+        """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property

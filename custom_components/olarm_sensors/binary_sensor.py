@@ -31,17 +31,8 @@ async def async_setup_entry(
         if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
             continue
 
-        # Creating an instance of the DataCoordinator to update the data from Olarm.
+        # Getting the instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
-
-        # Getting the first setup data from Olarm. eg: Getting all the zones and their info.
-        if datetime.now() - coordinator.last_update > timedelta(
-            seconds=(1.5 * coordinator.entry.data[CONF_SCAN_INTERVAL])
-        ):
-            LOGGER.warning("Updating data binary sensor")
-            LOGGER.warning(datetime.now() - coordinator.last_update)
-            LOGGER.warning("Binary Sensor Done")
-            await coordinator.async_get_data()
 
         LOGGER.info(
             "Adding Olarm Zone Sensors for device (%s)", coordinator.olarm_device_name
@@ -170,12 +161,6 @@ class OlarmSensor(BinarySensorEntity):
         Returns:
             boolean: Whether tthe update worked.
         """
-        if datetime.now() - self.coordinator.last_update > timedelta(
-            seconds=(1.5 * self.coordinator.entry.data[CONF_SCAN_INTERVAL])
-        ):
-            # Only update the state from the api if it has been more than 60s since the last update.
-            await self.coordinator.async_update_sensor_data()
-
         self._attr_is_on = self.coordinator.sensor_data[self.index]["state"] == "on"
         self.last_changed = self.coordinator.sensor_data[self.index]["last_changed"]
         return self.coordinator.last_update_success
@@ -200,7 +185,7 @@ class OlarmSensor(BinarySensorEntity):
     @property
     def name(self):
         """
-        The name of the zone from the ALarm Panel
+        The name of the zone from the Alarm Panel
         """
         name = []
         name1 = self.sensor_name.replace("_", " ")
@@ -289,7 +274,7 @@ class OlarmSensor(BinarySensorEntity):
 
     @property
     def should_poll(self):
-        """Disable polling."""
+        """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property

@@ -37,15 +37,9 @@ async def async_setup_entry(
             continue
 
         LOGGER.info("Setting up Alarm Panels for device (%s)", device["deviceName"])
+        
+        # Getting the instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
-
-        if datetime.now() - coordinator.last_update > timedelta(
-            seconds=(1.5 * entry.data[CONF_SCAN_INTERVAL])
-        ):
-            LOGGER.warning("Updating data alarm panel")
-            LOGGER.warning(datetime.now() - coordinator.last_update)
-            LOGGER.warning("alarm panel Done")
-            await coordinator.async_get_data()
 
         for sensor in coordinator.panel_state:
             LOGGER.info(
@@ -95,11 +89,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     def __init__(self, coordinator, sensor_name, state, area) -> None:
         """Initialize the Olarm Alarm Control Panel."""
-        LOGGER.info(
-            "Initiating Olarm Alarm Control Panel for area (%s) device (%s)",
-            sensor_name,
-            coordinator.olarm_device_name,
-        )
+        LOGGER.info("Initializing Olarm Alarm Control Panel for area (%s) device (%s)", sensor_name, coordinator.olarm_device_name)
         super().__init__(coordinator)
         self._state = OLARM_STATE_TO_HA.get(state)
         self.sensor_name = sensor_name
@@ -193,7 +183,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     @property
     def should_poll(self):
-        """Disable polling."""
+        """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property
@@ -215,10 +205,10 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         Send the disarm command to the api.
         """
-        LOGGER.info(
-            "Olarm device (%s) has been disarmed", self.coordinator.olarm_device_name
-        )
         if self.check_code(code):
+            LOGGER.info(
+                "Olarm device (%s) has been disarmed", self.coordinator.olarm_device_name
+            )
             return await self.coordinator.api.disarm_area(self.area)
 
         else:
@@ -232,11 +222,11 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         Send the stay command to the api.
         """
-        LOGGER.info(
-            "Olarm device (%s) has been set to armed_home (stay)",
-            self.coordinator.olarm_device_name,
-        )
         if self.check_code(code):
+            LOGGER.info(
+                "Olarm device (%s) has been set to armed_home (stay)",
+                self.coordinator.olarm_device_name,
+            )
             return await self.coordinator.api.stay_area(self.area)
 
         else:
@@ -250,11 +240,11 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         Send the arm command to the api.
         """
-        LOGGER.info(
-            "Olarm device (%s) has been set to armed_away (armed)",
-            self.coordinator.olarm_device_name,
-        )
         if self.check_code(code):
+            LOGGER.info(
+                "Olarm device (%s) has been set to armed_away (armed)",
+                self.coordinator.olarm_device_name,
+            )
             return await self.coordinator.api.arm_area(self.area)
 
         else:
@@ -268,11 +258,11 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         Send the sleep command to the api.
         """
-        LOGGER.info(
-            "Olarm device (%s) has been set to armed_night (sleep)",
-            self.coordinator.olarm_device_name,
-        )
         if self.check_code(code):
+            LOGGER.info(
+                "Olarm device (%s) has been set to armed_night (sleep)",
+                self.coordinator.olarm_device_name,
+            )
             return await self.coordinator.api.sleep_area(self.area)
 
         else:

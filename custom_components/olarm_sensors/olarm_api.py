@@ -1,6 +1,5 @@
 """Module to interact with the Olarm API."""
 import aiohttp
-from async_lru import alru_cache
 import time
 from .const import LOGGER
 from .exceptions import (
@@ -8,6 +7,7 @@ from .exceptions import (
     ListIndexError,
     DictionaryKeyError,
     APINotFoundError,
+    APIContentTypeError
 )
 from datetime import datetime, timedelta
 
@@ -39,7 +39,6 @@ class OlarmApi:
             "Sec-Ch-Ua": '"Google Chrome";v="113", "Chromium";v="113", "Not-A.Brand";v="24"',
         }
 
-    @alru_cache(ttl=5)
     async def get_device_json(self) -> dict:
         """
         This method gets and returns the data from the Olarm API for a spesific device:
@@ -52,20 +51,31 @@ class OlarmApi:
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
                     headers=self.headers,
                 ) as response:
-                    try:
-                        return await response.json()
-
-                    except aiohttp.client_exceptions.ContentTypeError:
-                        LOGGER.warning(
-                            "Your refresh interval is set too frequent for the Olarm API to handle. Please set it to a higher duration and regenerate your API key as it has been blocked."
-                        )
-                        return {}
+                    return await response.json()
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
             return {}
+        
+        except APIContentTypeError:
+            text = await response.text()
+            if "Forbidden" in text:
+                LOGGER.error(
+                    "Could not get JSON data due to incorrect API key. Please update the api key"
+                )
+                return {}
+            
+            elif "Too many Requests" in text:
+                LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
+                return {}
+            
+            else:
+                LOGGER.error(
+                    "The api returned text instead of JSON. The text is:\n%s",
+                    text,
+                )
+                return {}
 
-    @alru_cache(ttl=5)
     async def get_changed_by_json(self, area) -> dict:
         """
         DOCSTRING:\tGets the actions for a spesific device from Olarm and returns the user that last chenged the state of an Area.
@@ -489,7 +499,6 @@ class OlarmApi:
         }
         return await self.send_action(post_data)
 
-    @alru_cache(ttl=5)
     async def get_all_devices(self) -> list:
         """
         This method gets and returns the devices from the Olarm API:
@@ -509,6 +518,25 @@ class OlarmApi:
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
             return []
+        
+        except APIContentTypeError:
+            text = await response.text()
+            if "Forbidden" in text:
+                LOGGER.error(
+                    "Could not get JSON data due to incorrect API key. Please update the api key"
+                )
+                return []
+            
+            elif "Too many Requests" in text:
+                LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
+                return []
+            
+            else:
+                LOGGER.error(
+                    "The api returned text instead of JSON. The text is:\n%s",
+                    text,
+                )
+                return []
 
 
 class OlarmSetupApi:
@@ -528,7 +556,6 @@ class OlarmSetupApi:
         self.data = []
         self.headers = {"Authorization": f"Bearer {api_key}"}
 
-    @alru_cache(ttl=5)
     async def get_olarm_devices(self) -> list:
         """
         This method gets and returns the devices from the Olarm API:
@@ -550,10 +577,14 @@ class OlarmSetupApi:
                         text = await response.text()
                         if "Forbidden" in text:
                             LOGGER.error(
-                                "Could not get JSON data. Your api key has been blocked due to too many frequent updates. Please regenerate the api key"
+                                "Could not get JSON data due to incorrect API key. Please update the api key"
                             )
                             return []
-
+                        
+                        elif "Too many Requests" in text:
+                            LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
+                            return []
+                        
                         else:
                             LOGGER.error(
                                 "The api returned text instead of JSON. The text is:\n%s",

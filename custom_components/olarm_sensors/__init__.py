@@ -98,8 +98,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         )
 
         device_name_for_ha = "_".join(device["deviceName"].lower().split(" "))
-
-        await asyncio.sleep(delay=5)
         
         # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
         OLARM_API = OlarmApi(
@@ -132,13 +130,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device["deviceId"],
         )
 
-    with open(
-        file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8"
-    ) as service_file:
+    with open(file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8") as service_file:
         for line in filedata:
             service_file.write(line)
 
-    # Forwarding the setup for the other Home Assistant platforms if it is not set up or a new device was added.
+    # Forwarding the setup for the other Home Assistant platforms.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     return True
@@ -168,10 +164,9 @@ async def update_listener(hass: HomeAssistant, config_entry):
     try:
         if not config_entry.options[CONF_API_KEY] == config_entry.data[CONF_API_KEY]:
             data = {**config_entry.data}
-
-            data[CONF_API_KEY] = config_entry.options[CONF_API_KEY]
-
             options = {**config_entry.options}
+
+            data[CONF_API_KEY] = options[CONF_API_KEY]
 
             hass.config_entries.async_update_entry(
                 config_entry, data=data, options=options
