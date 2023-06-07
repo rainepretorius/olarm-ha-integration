@@ -107,14 +107,14 @@ class BypassSwitchEntity(SwitchEntity):
         """Turn on the zone bypass."""
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
         await self.coordinator.async_update_bypass_data()
-        await self.async_write_ha_state()
+        self.async_write_ha_state()
         return ret
 
     async def async_turn_off(self, **kwargs):
         """Turn off the zone bypass."""
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
         await self.coordinator.async_update_bypass_data()
-        await self.async_write_ha_state()
+        self.async_write_ha_state()
         return ret
 
     async def async_added_to_hass(self):
