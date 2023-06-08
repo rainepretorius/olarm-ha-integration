@@ -3,7 +3,7 @@
 ## Supported Devices
 The integration currently supports all the alarm panels and electric fence energizers listed [here](https://olarm.com/works-with) on Olarm's website.
 
-Please note that the integration has currently only been tested on a MG 5050+ alarm system by the maintainer, but should work for all devices.
+Please note that the integration has currently only been tested on a Paradox MG 5050+ alarm system by the maintainer, but should work for all devices.
 
 ## Issues
 If you encounter an error with the integration, resulting in its malfunction or failure to function as intended, please create an issue on the repository's [Github](https://github.com/rainepretorius/olarm-ha-integration/issues) page. Please also check that your issue  has not all ready been asked and answered. Else it will be closed.
