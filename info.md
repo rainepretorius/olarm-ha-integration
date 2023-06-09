@@ -30,7 +30,7 @@ Binary sensors are used for simple alarm panel zones and sensors. The following 
 5. Powered by Battery (BinarySensorDeviceClass.POWER)
 
 ### Alarm Control Panel
-There is an alarm control panel for each area enabled on your alarm panel. This allows you to set the state of each area individually. If you have a nemtek electric fence. It is currently coded to enable arming and disarming of the electric fence.
+There is an alarm control panel for each area enabled on your alarm panel. This allows you to set the state of each area individually. If you have a nemtek electric fence, the integration is currently coded to enable arming and disarming of the electric fence.
 
 ### Buttons
 There are buttons to refresh the data from the Olarm API, activate the PGM's, and activate Utility keys. The following is how it is set up:
