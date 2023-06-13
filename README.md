@@ -3,10 +3,10 @@
 ## Supported Devices
 The integration currently supports all the alarm panels and electric fence energizers listed [here](https://olarm.com/works-with) on Olarm's website.
 
-Please note that the integration has currently only been tested on a MG 5050+ alarm system by the maintainer, but should work for all devices.
+Please note that the integration has currently only been tested on a Paradox MG 5050+ alarm system by the maintainer, but should work for all devices.
 
 ## Issues
-If you encounter an error with the integration, resulting in its malfunction or failure to function as intended, please create an issue on the repository's [Github](https://github.com/rainepretorius/olarm-ha-integration/issues) page.
+If you encounter an error with the integration, resulting in its malfunction or failure to function as intended, please create an issue on the repository's [Github](https://github.com/rainepretorius/olarm-ha-integration/issues) page. Please also check that your issue  has not all ready been asked and answered. Else it will be closed.
 
 ## Installation Steps
 1. Install via HACS.
@@ -30,7 +30,7 @@ Binary sensors are used for simple alarm panel zones and sensors. The following 
 5. Powered by Battery (BinarySensorDeviceClass.POWER)
 
 ### Alarm Control Panel
-There is an alarm control panel for each area enabled on your alarm panel. This allows you to set the state of each area individually. If you have a nemtek electric fence. It is currently coded to enable arming and disarming of the electric fence.
+There is an alarm control panel for each area enabled on your alarm panel. This allows you to set the state of each area individually. If you have a nemtek electric fence, the integration is currently coded to enable arming and disarming of the electric fence.
 
 ### Buttons
 There are buttons to refresh the data from the Olarm API, activate the PGM's, and activate Utility keys. The following is how it is set up:
