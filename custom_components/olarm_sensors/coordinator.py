@@ -94,7 +94,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
             LOGGER.error("Could not retrieve devices connected to your account. The Invalid response is:\n%s", ex)
 
         devices_json = await self.api.get_device_json()
-        if bool(devices_json):
+        if bool(devices_json) and devices_json['error'] is None:
             # Checking if the device is online.
             self.device_online = devices_json["deviceStatus"].lower() == "online"
 

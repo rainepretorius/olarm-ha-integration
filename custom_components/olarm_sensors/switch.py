@@ -58,7 +58,7 @@ async def async_setup_entry(
             "Added Olarm PGM switches for device (%s)", coordinator.olarm_device_name
         )
 
-        # Looping through the zoness for the panel.
+        # Looping through the zones for the panel.
         LOGGER.info(
             "Adding Olarm Bypass switches for device (%s)",
             coordinator.olarm_device_name,

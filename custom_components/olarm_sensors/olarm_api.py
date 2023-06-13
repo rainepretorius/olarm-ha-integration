@@ -51,11 +51,13 @@ class OlarmApi:
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
                     headers=self.headers,
                 ) as response:
-                    return await response.json()
+                    resp = await response.json()
+                    resp['error'] = None
+                    return resp
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
-            return {}
+            return {'error': ex}
         
         except APIContentTypeError:
             text = await response.text()
@@ -63,18 +65,18 @@ class OlarmApi:
                 LOGGER.error(
                     "Could not get JSON data due to incorrect API key. Please update the api key"
                 )
-                return {}
+                return {'error': text}
             
             elif "Too many Requests" in text:
-                LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
-                return {}
+                LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key if you want the integration to work immediately")
+                return {'error': text}
             
             else:
                 LOGGER.error(
                     "The api returned text instead of JSON. The text is:\n%s",
                     text,
                 )
-                return {}
+                return {'error': text}
 
     async def get_changed_by_json(self, area) -> dict:
         """
@@ -125,7 +127,18 @@ class OlarmApi:
 
         return (dict):\tThe device json from Olarm.
         """
-        return await self.get_device_json()
+        try:
+            resp = await self.get_device_json()
+            if resp['error'] is None:
+                resp['auth_success'] = True
+                return resp
+
+            else:
+                resp['auth_success'] = False
+                return resp
+        
+        except Exception as ex:
+            return {'auth_success': False, 'error': ex}
 
     async def get_sensor_states(self, devices_json) -> list:
         """
@@ -579,18 +592,18 @@ class OlarmSetupApi:
                             LOGGER.error(
                                 "Could not get JSON data due to incorrect API key. Please update the api key"
                             )
-                            return []
+                            return None
                         
                         elif "Too many Requests" in text:
                             LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
-                            return []
+                            return None
                         
                         else:
                             LOGGER.error(
                                 "The api returned text instead of JSON. The text is:\n%s",
                                 text,
                             )
-                            return []
+                            return None
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm SetupAPI Devices error\n%s", ex)

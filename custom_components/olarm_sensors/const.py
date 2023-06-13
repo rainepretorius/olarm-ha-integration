@@ -11,10 +11,9 @@ from homeassistant.const import (
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 
-VERSION = "2.1.7"
+VERSION = "2.1.8"
 DOMAIN = "olarm_sensors"
-AuthenticationError = "invalid_credentials"
-DeviceIDError = "invalid_device_id"
+AUTHENTICATION_ERROR = "invalid_credentials"
 LOGGER = logging.getLogger(__package__)
 CONF_DEVICE_NAME = "olarm_device_name"
 CONF_DEVICE_MAKE = "olarm_device_make"

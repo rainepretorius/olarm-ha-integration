@@ -6,9 +6,8 @@ from homeassistant.core import callback
 from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
 from .olarm_api import OlarmSetupApi
 from .const import (
-    AuthenticationError,
+    AUTHENTICATION_ERROR,
     DOMAIN,
-    DeviceIDError,
     CONF_DEVICE_FIRMWARE,
     CONF_ALARM_CODE,
     LOGGER,
@@ -71,7 +70,10 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 LOGGER.warning(
                     "User entered invalid credentials or API access is not enabled!"
                 )
-                errors[AuthenticationError] = "Invalid credentials!"
+                errors[AUTHENTICATION_ERROR] = "Invalid credentials!"
+            
+            if json is None:
+                errors[AUTHENTICATION_ERROR] = "Invalid credentials!"
 
             # If there are errors, show the setup form with error messages
             if errors:
@@ -202,6 +204,9 @@ class OlarmOptionsFlow(config_entries.OptionsFlow):
 
             new[CONF_ALARM_CODE] = alarm_code
             new[OLARM_DEVICE_AMOUNT] = len(self.config_entry.data[OLARM_DEVICE_NAMES])
+            new[CONF_SCAN_INTERVAL] = user_input[CONF_SCAN_INTERVAL]
+            new[CONF_API_KEY] = user_input[CONF_API_KEY]
+            new[CONF_OLARM_DEVICES] = user_input[CONF_OLARM_DEVICES]
 
             return self.async_create_entry(title="Olarm Sensors", data=new)
 

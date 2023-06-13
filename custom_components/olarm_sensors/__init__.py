@@ -161,6 +161,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def update_listener(hass: HomeAssistant, config_entry):
     """Handle options update."""
+    # Updating the API_KEY
     try:
         if not config_entry.options[CONF_API_KEY] == config_entry.data[CONF_API_KEY]:
             data = {**config_entry.data}
@@ -179,6 +180,7 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
+    # Updating the alarm code
     try:
         if (
             not config_entry.options[CONF_ALARM_CODE]
@@ -205,13 +207,14 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
+    # Updating the devices
     # Getting all the devices.
     setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
     devices = await setup_api.get_olarm_devices()
     try:
         if (
-            not config_entry.options[CONF_OLARM_DEVICES]
-            == config_entry.data[CONF_OLARM_DEVICES]
+            not len(config_entry.options[CONF_OLARM_DEVICES])
+            == len(config_entry.data[CONF_OLARM_DEVICES])
         ):
             data = {**config_entry.data}
 
@@ -237,6 +240,7 @@ async def update_listener(hass: HomeAssistant, config_entry):
         options[OLARM_DEVICES] = devices
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
+    # Updating the Device Amount
     try:
         if (
             not config_entry.options[OLARM_DEVICE_AMOUNT]
@@ -261,5 +265,27 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
-    
+    # Updating the scan interval
+    try:
+        if (
+            not int(config_entry.options[CONF_SCAN_INTERVAL])
+            == int(config_entry.data[CONF_SCAN_INTERVAL])
+        ):
+            data = {**config_entry.data}
+
+            data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL]
+
+            options = {**config_entry.options}
+
+            hass.config_entries.async_update_entry(
+                config_entry, data=data, options=options
+            )
+
+    except (DictionaryKeyError, KeyError):
+        data = {**config_entry.data}
+        options = {**config_entry.options}
+
+        if data[CONF_SCAN_INTERVAL] is not None:
+            options[CONF_SCAN_INTERVAL] = data[CONF_SCAN_INTERVAL]
+
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
