@@ -54,10 +54,6 @@ class OlarmApi:
                     resp = await response.json()
                     resp['error'] = None
                     return resp
-
-        except APIClientConnectorError as ex:
-            LOGGER.error("Olarm API Devices error\n%s", ex)
-            return {'error': ex}
         
         except APIContentTypeError:
             text = await response.text()
@@ -77,6 +73,10 @@ class OlarmApi:
                     text,
                 )
                 return {'error': text}
+
+        except APIClientConnectorError as ex:
+            LOGGER.error("Olarm API Devices error\n%s", ex)
+            return {'error': ex}
 
     async def get_changed_by_json(self, area) -> dict:
         """

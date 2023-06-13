@@ -81,7 +81,7 @@ async def async_get_device_diagnostics(hass: HomeAssistant, entry: ConfigEntry, 
         
         await asyncio.sleep(2)
     
-    config['scan_interval']: entry.data[CONF_SCAN_INTERVAL]
+    config['scan_interval'] = entry.data[CONF_SCAN_INTERVAL]
 
     uuid = str(round(datetime.datetime.now().timestamp())) + str(len(entry.data[CONF_OLARM_DEVICES])) + str(entry.entry_id) + VERSION
     return {
