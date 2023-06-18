@@ -218,12 +218,12 @@ async def update_listener(hass: HomeAssistant, config_entry):
         ):
             data = {**config_entry.data}
 
+            options = {**config_entry.options}
+
             data[CONF_OLARM_DEVICES] = config_entry.options[CONF_OLARM_DEVICES]
 
             data[OLARM_DEVICES] = devices
             options[OLARM_DEVICES] = devices
-
-            options = {**config_entry.options}
 
             hass.config_entries.async_update_entry(
                 config_entry, data=data, options=options
