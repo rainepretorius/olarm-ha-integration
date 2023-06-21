@@ -12,6 +12,8 @@ from .const import DOMAIN
 from .const import VERSION
 from .const import CONF_OLARM_DEVICES
 from .const import BypassZone
+import random
+import asyncio
 
 
 async def async_setup_entry(
@@ -23,7 +25,7 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
-        if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
+        if device["deviceName"] not in entry.data[CONF_OLARM_DEVICES]:
             continue
 
         # Getting the instance of the DataCoordinator to update the data from Olarm.
@@ -105,14 +107,18 @@ class BypassSwitchEntity(SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Turn on the zone bypass."""
+        await asyncio.sleep(random.uniform(0, 2))
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
+        await asyncio.sleep(random.uniform(0, 2))
         await self.coordinator.async_update_bypass_data()
         self.async_write_ha_state()
         return ret
 
     async def async_turn_off(self, **kwargs):
         """Turn off the zone bypass."""
+        await asyncio.sleep(random.uniform(0, 2))
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
+        await asyncio.sleep(random.uniform(0, 2))
         await self.coordinator.async_update_bypass_data()
         self.async_write_ha_state()
         return ret

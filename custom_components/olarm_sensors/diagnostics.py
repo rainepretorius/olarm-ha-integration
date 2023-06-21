@@ -18,7 +18,7 @@ async def async_get_device_diagnostics(hass: HomeAssistant, entry: ConfigEntry, 
             if DOMAIN in key
         ]
         
-        # Removinf device_id from url
+        # Removing device_id from url
         ind1 = 0
         ind2 = 0
         for error in errors:

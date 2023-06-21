@@ -27,6 +27,8 @@ from .exceptions import DictionaryKeyError
 import os
 import voluptuous as vol
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.const import EVENT_CALL_SERVICE
+
 
 
 path = os.path.abspath(__file__).replace("__init__.py", "")
@@ -52,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     except:
         raise ConfigEntryNotReady(
-            "Could not connect to the Olarm Api to get the devices linked to your Olarm account"
+            "Could not connect to the Olarm Api to get the devices linked to your Olarm account. Check your API key or reload the integration (not reinstall!!!)"
         )
 
     if len(devices) > int(config_entry.data[OLARM_DEVICE_AMOUNT]):
@@ -104,7 +106,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device_id=device["deviceId"],
             api_key=config_entry.data[CONF_API_KEY],
         )
-
+        
         filedata = []
         filedata.append(
             f"{device_name_for_ha}_bypass_zone:\n  description: Send a request to Olarm to bypass the zone on {device['deviceName']}.\n  fields:\n    zone_num:\n      description: 'Zone Number (Can be found under state attributes for the specified zone.)'\n      example: '1'\n      required: true\n"
@@ -123,6 +125,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 }
             ),
         )
+        
+        # Register the event handler for service call events
+        hass.bus.async_listen(EVENT_CALL_SERVICE, lambda event: handle_service_call_event(coordinator, event, f"{device_name_for_ha}_bypass_zone"))
 
         LOGGER.info(
             "Set up Olarm device (%s) with device id: %s",
@@ -289,3 +294,9 @@ async def update_listener(hass: HomeAssistant, config_entry):
             options[CONF_SCAN_INTERVAL] = data[CONF_SCAN_INTERVAL]
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
+
+
+async def handle_service_call_event(coordinator: OlarmCoordinator, event, service_name):
+    if event.data['domain'] == DOMAIN and event.data['service'] == service_name:
+        await asyncio.sleep(1)
+        await coordinator.async_update_bypass_data()

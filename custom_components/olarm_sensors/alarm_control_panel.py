@@ -33,7 +33,7 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
-        if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
+        if device["deviceName"] not in entry.data[CONF_OLARM_DEVICES]:
             continue
 
         LOGGER.info("Setting up Alarm Panels for device (%s)", device["deviceName"])
@@ -193,12 +193,12 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         return {
             "last_changed": self._last_changed,
+            'changed_by': self._changed_by,
             "area_trigger": self._area_trigger,
             "last_action": self._last_action,
-            "code_required": self.code_arm_required,
             "code_format": self.code_format,
             "area_name": self.sensor_name,
-            "area_number": self.area,
+            "area_number": self.area
         }
 
     async def async_alarm_disarm(self, code=None) -> None:
@@ -207,13 +207,16 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         if self.check_code(code):
             LOGGER.info(
-                "Olarm device (%s) has been disarmed", self.coordinator.olarm_device_name
+                "Area '%s' on Olarm device (%s) has been disarmed", self.sensor_name, self.coordinator.olarm_device_name
             )
-            return await self.coordinator.api.disarm_area(self.area)
+            resp = await self.coordinator.api.disarm_area(self.area)
+            await self.coordinator.async_update_panel_data()
+            return resp
 
         else:
             LOGGER.error(
-                "Invalid code given to disarm alarm for Olarm device (%s)",
+                "Invalid code given to disarm area '%s' for Olarm device (%s)",
+                self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
             return False
@@ -224,14 +227,18 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         if self.check_code(code):
             LOGGER.info(
-                "Olarm device (%s) has been set to armed_home (stay)",
+                "Area '%s' on Olarm device (%s) has been set to armed_home (stay)",
+                self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
-            return await self.coordinator.api.stay_area(self.area)
+            resp = await self.coordinator.api.stay_area(self.area)
+            await self.coordinator.async_update_panel_data()
+            return resp
 
         else:
             LOGGER.error(
-                "Invalid code given to set alarm to armed home (stay) for Olarm device (%s)",
+                "Invalid code given to set area '%s' to armed home (stay) for Olarm device (%s)",
+                self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
             return False
@@ -242,14 +249,18 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         if self.check_code(code):
             LOGGER.info(
-                "Olarm device (%s) has been set to armed_away (armed)",
+                "Area '%s' on Olarm device (%s) has been set to armed_away (armed)",
+                self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
-            return await self.coordinator.api.arm_area(self.area)
+            resp = await self.coordinator.api.arm_area(self.area)
+            await self.coordinator.async_update_panel_data()
+            return resp
 
         else:
             LOGGER.error(
-                "Invalid code given to set alarm to armed_away (Arm) for Olarm device (%s)",
+                "Invalid code given to set area 's' to armed_away (Arm) for Olarm device (%s)",
+                self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
             return False
@@ -260,14 +271,18 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         if self.check_code(code):
             LOGGER.info(
-                "Olarm device (%s) has been set to armed_night (sleep)",
+                "Area '%s' on Olarm device (%s) has been set to armed_night (sleep)",
+                self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
-            return await self.coordinator.api.sleep_area(self.area)
+            resp = await self.coordinator.api.sleep_area(self.area)
+            await self.coordinator.async_update_panel_data()
+            return resp
 
         else:
             LOGGER.error(
-                "Invalid code given to set alarm to armed_night (sleep) for Olarm device (%s)",
+                "Invalid code given to set area '%s' to armed_night (sleep) for Olarm device (%s)",
+                self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
             return False
@@ -282,14 +297,38 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        # Setting the state.
         try:
             self._state = OLARM_STATE_TO_HA.get(
                 self.coordinator.panel_state[self.area - 1]["state"]
             )
-
         except ListIndexError:
             LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
-
+        
+        # Setting the changed by person.
+        try:
+            self._changed_by = self.coordinator.area_changes[self.area - 1]['userFullname']
+        except ListIndexError:
+            LOGGER.error("Could not set area changed by for %s", self.sensor_name)
+        
+        # Setting the last changed attribute.
+        try:
+            self._last_changed = self.coordinator.area_changes[self.area - 1]['actionCreated']
+        except ListIndexError:
+            LOGGER.error("Could not set last changed for %s", self.sensor_name)
+          
+        # Setting the last action attribute.  
+        try:
+            self._last_action = self.coordinator.area_changes[self.area - 1]['actionCmd']
+        except ListIndexError:
+            LOGGER.error("Could not set last action for %s", self.sensor_name)
+            
+        # Setting the area triggers.
+        try:
+            self._area_trigger = self.coordinator.area_triggers[self.area - 1]
+        except ListIndexError:
+            LOGGER.error("Could not set area triggers for %s", self.sensor_name)
+        
         super()._handle_coordinator_update()
 
     def check_code(self, entered_code=None) -> bool:

@@ -23,7 +23,7 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
-        if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
+        if device["deviceName"] not in entry.data[CONF_OLARM_DEVICES]:
             continue
         
         # Getting the instance of the DataCoordinator to update the data from Olarm.
