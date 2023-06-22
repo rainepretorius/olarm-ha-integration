@@ -36,8 +36,7 @@ class OlarmApi:
         self.device_name = device_name
         self.headers = {
             "Authorization": f"Bearer {api_key}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-            "Sec-Ch-Ua": '"Google Chrome";v="113", "Chromium";v="113", "Not-A.Brand";v="24"',
+            "User-Agent": "Home Assistant"
         }
 
     async def get_device_json(self) -> dict:

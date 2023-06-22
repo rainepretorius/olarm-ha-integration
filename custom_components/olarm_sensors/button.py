@@ -38,7 +38,7 @@ async def async_setup_entry(
         )
         # Looping through the pgm's for the panel.
         for sensor in coordinator.pgm_data:
-            # Creating a butron for each pulse PGM on the alarm panel.
+            # Creating a button for each pulse PGM on the alarm panel.
             if not sensor["pulse"]:
                 continue
 

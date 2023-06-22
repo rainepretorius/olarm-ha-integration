@@ -150,7 +150,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
         Called to update the data for the zone sensors for the integration from Olarm's API.
         """
         self.devices_json = await self.api.get_device_json()
-        if bool(self.devices_json):
+        if bool(self.devices_json) and self.devices_json['error'] is None:
             # Checking if the device is online.
             self.device_online = self.devices_json["deviceStatus"].lower() == "online"
 
@@ -169,7 +169,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
         Called to update the data for the integration from Olarm's API.
         """
         self.devices_json = await self.api.get_device_json()
-        if bool(self.devices_json):
+        if bool(self.devices_json) and self.devices_json['error'] is None:
             # Getting the Bypass Information
             self.bypass_data = await self.api.get_sensor_bypass_states(self.devices_json)
             self.bypass_state = self.bypass_data
@@ -187,7 +187,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
         Called to update the data for the integration from Olarm's API.
         """
         self.devices_json = await self.api.get_device_json()
-        if bool(self.devices_json):
+        if bool(self.devices_json) and self.devices_json['error'] is None:
             # Getting the Area Information
             self.panel_data = await self.api.get_panel_states(self.devices_json)
             self.panel_state = self.panel_data
@@ -206,7 +206,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
         Called to update the data for the integration from Olarm's API.
         """
         self.devices_json = await self.api.get_device_json()
-        if bool(self.devices_json):
+        if bool(self.devices_json) and self.devices_json['error'] is None:
             # Getting PGM Data
             self.pgm_data = await self.api.get_pgm_zones(self.devices_json)
             # Getting Ukey Data

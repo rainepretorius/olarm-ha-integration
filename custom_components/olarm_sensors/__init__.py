@@ -72,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # Generating services file
     filedata = []
     for device in devices:
-        if not device["deviceName"] in config_entry.data[CONF_OLARM_DEVICES]:
+        if device["deviceName"] not in config_entry.data[CONF_OLARM_DEVICES]:
             continue
 
         LOGGER.info(
