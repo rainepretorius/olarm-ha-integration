@@ -107,18 +107,18 @@ class BypassSwitchEntity(SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Turn on the zone bypass."""
-        await asyncio.sleep(random.uniform(0, 2))
+        await asyncio.sleep(random.uniform(1.5, 3))
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
-        await asyncio.sleep(random.uniform(0, 2))
+        await asyncio.sleep(random.uniform(1.5, 3))
         await self.coordinator.async_update_bypass_data()
         self.async_write_ha_state()
         return ret
 
     async def async_turn_off(self, **kwargs):
         """Turn off the zone bypass."""
-        await asyncio.sleep(random.uniform(0, 2))
+        await asyncio.sleep(random.uniform(1.5, 3))
         ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
-        await asyncio.sleep(random.uniform(0, 2))
+        await asyncio.sleep(random.uniform(1.5, 3))
         await self.coordinator.async_update_bypass_data()
         self.async_write_ha_state()
         return ret

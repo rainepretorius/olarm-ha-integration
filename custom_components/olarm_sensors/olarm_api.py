@@ -64,8 +64,8 @@ class OlarmApi:
                             )
                             return {'error': text}
                         
-                        elif "Too many Requests" in text:
-                            LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key if you want the integration to work immediately")
+                        elif "Too Many Requests" in text:
+                            LOGGER.error("Your refresh interval is set too frequent for the Olarm API to handle")
                             return {'error': text}
                         
                         else:
@@ -549,7 +549,7 @@ class OlarmApi:
                             )
                             return []
                         
-                        elif "Too many Requests" in text:
+                        elif "Too Many Requests" in text:
                             LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
                             return []
                         
@@ -607,7 +607,7 @@ class OlarmSetupApi:
                             )
                             return None
                         
-                        elif "Too many Requests" in text:
+                        elif "Too Many Requests" in text:
                             LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
                             return None
                         
