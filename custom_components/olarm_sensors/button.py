@@ -215,7 +215,7 @@ class UKeyButtonEntity(Entity):
         Updates the state of the zone sensor from the coordinator.
 
         Returns:
-            boolean: Whether tthe update worked.
+            boolean: Whether the update worked.
         """
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
 

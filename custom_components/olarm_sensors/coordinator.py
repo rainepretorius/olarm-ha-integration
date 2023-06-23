@@ -124,9 +124,9 @@ class OlarmCoordinator(DataUpdateCoordinator):
             self.area_triggers = await self.api.get_alarm_trigger(self.devices_json)
             
             # Getting the change json for each area.
-            for area in self.panel_data:
+            '''for area in self.panel_data:
                 self.area_changes[area["area_number"] - 1] = await self.api.get_changed_by_json(area["area_number"])
-
+            '''
             # Setting the last update success to true to show device as available.
             self.last_update_success = True
             self.last_update = datetime.now()

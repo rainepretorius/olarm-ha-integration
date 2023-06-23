@@ -11,6 +11,7 @@ from .exceptions import (
 )
 from aiohttp.client_exceptions import ContentTypeError
 from datetime import datetime, timedelta
+import asyncio
 
 class OlarmApi:
     """
@@ -86,6 +87,7 @@ class OlarmApi:
         """
         return_data = {"userFullname": "No User", "actionCreated": 0, "actionCmd": None}
         try:
+            await asyncio.sleep(5)
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
@@ -115,6 +117,7 @@ class OlarmApi:
                     except TypeError:
                         last_changed = None
                     
+                    await asyncio.sleep(5)
                     return return_data
 
         except APIClientConnectorError as ex:

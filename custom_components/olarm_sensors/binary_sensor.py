@@ -159,7 +159,7 @@ class OlarmSensor(BinarySensorEntity):
         Updates the state of the zone sensor from the coordinator.
 
         Returns:
-            boolean: Whether tthe update worked.
+            boolean: Whether the update worked.
         """
         if datetime.now() - self.coordinator.last_update > timedelta(
             seconds=(1.5 * self.coordinator.entry.data[CONF_SCAN_INTERVAL])
