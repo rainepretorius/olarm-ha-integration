@@ -308,28 +308,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
             )
         except ListIndexError:
             pass
-            #LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
-        
-        # Setting the changed by person.
-        try:
-            self._changed_by = self.coordinator.area_changes[self.area - 1]['userFullname']
-        except ListIndexError:
-            pass
-            #LOGGER.error("Could not set area changed by for %s", self.sensor_name)
-        
-        # Setting the last changed attribute.
-        try:
-            self._last_changed = self.coordinator.area_changes[self.area - 1]['actionCreated']
-        except ListIndexError:
-            pass
-            #LOGGER.error("Could not set last changed for %s", self.sensor_name)
-          
-        # Setting the last action attribute.  
-        try:
-            self._last_action = self.coordinator.area_changes[self.area - 1]['actionCmd']
-        except ListIndexError:
-            pass
-            #LOGGER.error("Could not set last action for %s", self.sensor_name)
+            LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
             
         # Setting the area triggers.
         try:
@@ -353,30 +332,8 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
                 self.coordinator.panel_state[self.area - 1]["state"]
             )
         except ListIndexError:
-            pass
-            #LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
+            LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
         
-        # Setting the changed by person.
-        try:
-            self._changed_by = self.coordinator.area_changes[self.area - 1]['userFullname']
-        except ListIndexError:
-            pass
-            #LOGGER.error("Could not set area changed by for %s", self.sensor_name)
-        
-        # Setting the last changed attribute.
-        try:
-            self._last_changed = self.coordinator.area_changes[self.area - 1]['actionCreated']
-        except ListIndexError:
-            pass
-            #LOGGER.error("Could not set last changed for %s", self.sensor_name)
-          
-        # Setting the last action attribute.  
-        try:
-            self._last_action = self.coordinator.area_changes[self.area - 1]['actionCmd']
-        except ListIndexError:
-            pass
-            #LOGGER.error("Could not set last action for %s", self.sensor_name)
-            
         # Setting the area triggers.
         try:
             self._area_trigger = self.coordinator.area_triggers[self.area - 1]
