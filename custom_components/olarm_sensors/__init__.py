@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from .coordinator import OlarmCoordinator
 from .olarm_api import OlarmApi, OlarmSetupApi
 import asyncio
+import re
 from .const import (
     DOMAIN,
     LOGGER,
@@ -39,6 +40,14 @@ PLATFORMS = [
     SWITCH_DOMAIN,
 ]
 
+def replace_characters(text):
+    # Remove punctuation and weird characters
+    text = re.sub(r'[^\w\s]', '', text)
+
+    # Replace spaces with underscore
+    text = re.sub(r'\s', '_', text)
+
+    return text
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """
@@ -99,7 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device["deviceId"],
         )
 
-        device_name_for_ha = "_".join(device["deviceName"].lower().split(" "))
+        device_name_for_ha = replace_characters(device["deviceName"].lower())
         
         # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
         OLARM_API = OlarmApi(
