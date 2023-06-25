@@ -340,8 +340,6 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         except ListIndexError:
             LOGGER.error("Could not set area triggers for %s", self.sensor_name)
         
-        return self.coordinator.last_update_success
-        
         super()._handle_coordinator_update()
 
     def check_code(self, entered_code=None) -> bool:
