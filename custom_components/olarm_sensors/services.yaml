@@ -1,7 +1,1 @@
-fsrl_bypass_zone:
-  description: Send a request to Olarm to bypass the zone on FSrl.
-  fields:
-    zone_num:
-      description: 'Zone Number (Can be found under state attributes for the specified zone.)'
-      example: '1'
-      required: true
+
