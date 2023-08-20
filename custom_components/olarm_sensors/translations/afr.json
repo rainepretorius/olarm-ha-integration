@@ -1,0 +1,34 @@
+{
+    "config": {
+        "error": {
+            "invalid_credentials": "Die verskafde API-sleutel is nie geldig nie.",
+            "device_number_changed": "Die aantal Olarm-toestelle het verander. Kies asseblief die korrekte toestelle vir hierdie instansie onder opsies."
+        },
+        "step": {
+            "user": {
+                "description": "Hierdie integrasie maak gebruik van die Olarm API (https://user.olarm.co/#/api) om u Olarm-toestelle te beheer. Voer asseblief u API-sleutel in om voort te gaan:",
+                "data": {
+                    "api_key": "Olarm API-sleutel om aan te sluit by Olarm se API.",
+                    "scan_interval": "Die interval (s) om te wag voordat die sensors en areas opgedateer word.",
+                    "olarm_arm_code": "Die kode vir alarm-aksies. Los die oorspronklike waarde vir geen kode."
+                }
+            }
+        }
+    },
+    "options": {
+        "error": {
+            "invalid_credentials": "Die verskafde API-sleutel is nie geldig nie."
+        },
+        "step": {
+            "user": {
+                "description": "Hierdie integrasie maak gebruik van die Olarm API (https://user.olarm.co/#/api) om u Olarm-toestelle te beheer. Voer asseblief u API-sleutel in om voort te gaan:",
+                "data": {
+                    "api_key": "Olarm API-sleutel om aan te sluit by Olarm se API.",
+                    "scan_interval": "Die interval (s) om te wag voordat die sensors en areas opgedateer word.",
+                    "olarm_arm_code": "Die kode vir alarm-aksies. Los die oorspronklike waarde vir geen kode.",
+                    "selected_olarm_devices": "Die Olarm-toestelle om in hierdie Home Assistant instansie te laai."
+                }
+            }
+        }
+    }
+}

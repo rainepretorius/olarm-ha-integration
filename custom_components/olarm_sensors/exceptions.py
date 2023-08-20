@@ -1,5 +1,5 @@
 """Module that stores all the exceptions in Home Assistant format"""
-from typing import Optional, Tuple
+from typing import Tuple
 from aiohttp.client_reqrep import ClientResponse, RequestInfo
 from aiohttp.typedefs import LooseHeaders
 from aiohttp.web_exceptions import HTTPForbidden, HTTPMethodNotAllowed, HTTPNotFound

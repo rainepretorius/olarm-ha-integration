@@ -11,7 +11,7 @@ from homeassistant.const import (
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 
-VERSION = "2.2.2"
+VERSION = "2.2.3"
 DOMAIN = "olarm_sensors"
 AUTHENTICATION_ERROR = "invalid_credentials"
 LOGGER = logging.getLogger(__package__)
@@ -56,22 +56,3 @@ OLARM_ZONE_TYPE_TO_HA = {
     1000: BinarySensorDeviceClass.PLUG,
     1001: BinarySensorDeviceClass.POWER,
 }
-
-
-class BypassZone:
-    """
-    DOCSTRING: Representation of the area number
-    """
-
-    zone: int = 0
-
-    def __init__(self, zone: int) -> None:
-        self.zone = zone
-        return None
-
-    @property
-    def data(self):
-        """
-        DOCSTRING: Returns the zone number for the api.
-        """
-        return {"zone_num": self.zone}

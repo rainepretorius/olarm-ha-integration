@@ -1,17 +1,32 @@
-"""Module to interact with the Olarm API."""
+"""
+Module to interact with the Olarm API.
+"""
 import aiohttp
 import time
+
+from homeassistant.core import HomeAssistant
 from .const import LOGGER
 from .exceptions import (
     APIClientConnectorError,
     ListIndexError,
     DictionaryKeyError,
     APINotFoundError,
-    APIContentTypeError
+    APIContentTypeError,
 )
 from aiohttp.client_exceptions import ContentTypeError
-from datetime import datetime, timedelta
+from datetime import datetime
 import asyncio
+from .dataclasses.api_classes import (
+    APIAreaResponse,
+    APISensorResponse,
+    APIBypassResponse,
+    APIPowerResponse,
+    APIPGMResponse,
+    APIUkeyResponse,
+)
+from .dataclasses import OlarmDevice
+from .dataclasses.ha_classes import BypassZone
+
 
 class OlarmApi:
     """
@@ -21,26 +36,40 @@ class OlarmApi:
         \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
     """
 
-    def __init__(self, device_id, api_key, device_name="") -> None:
+    _device: OlarmDevice
+    _api_key: str
+    _sensor_data: list[APISensorResponse, APIPowerResponse]
+    _bypass_data: list[APIBypassResponse]
+    _panel_data: list[APIAreaResponse]
+    _pgm_data: list[APIPGMResponse]
+    _devices: list[OlarmDevice]
+    _ukey_data: list[APIUkeyResponse]
+    devices_json_resp: dict
+    _hass: HomeAssistant
+
+    def __init__(self, device: OlarmDevice, api_key: str, hass: HomeAssistant) -> None:
         """
         Initatiates a connection to the Olarm API.
         params:
         \tdevice_id (str): UUID for the Olarm device.
         \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
         """
-        self.device_id = device_id
-        self.api_key = api_key
-        self.data = []
-        self.bypass_data = []
-        self.panel_data = []
-        self.devices = []
-        self.device_name = device_name
+        self._device = device
+        self._api_key = api_key
+        self._sensor_data = []
+        self._bypass_data = []
+        self._panel_data = []
+        self._devices = []
+        self._pgm_data = []
+        self._ukey_data = []
+        self._hass = hass
+        self.devices_json_resp = {}
         self.headers = {
             "Authorization": f"Bearer {api_key}",
-            "User-Agent": "Home Assistant"
+            "User-Agent": "Home Assistant",
         }
 
-    async def get_device_json(self) -> dict:
+    async def get_device_json(self) -> OlarmDevice:
         """
         This method gets and returns the data from the Olarm API for a spesific device:
 
@@ -49,36 +78,42 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
+                    f"https://apiv4.olarm.co/api/v4/devices/{self._device.device_id}",
                     headers=self.headers,
                 ) as response:
                     try:
-                        resp = await response.json()
-                        resp['error'] = None
-                        return resp
-        
-                    except (APIContentTypeError, ContentTypeError) :
+                        data = await response.json()
+                        self._device = OlarmDevice(data=data, hass=self._hass)
+                        return self._device
+
+                    except (APIContentTypeError, ContentTypeError):
                         text = await response.text()
                         if "Forbidden" in text:
                             LOGGER.error(
                                 "Could not get JSON data due to incorrect API key. Please update the api key"
                             )
-                            return {'error': text}
-                        
+                            self._device.add_error_to_device(text)
+                            return self._device
+
                         elif "Too Many Requests" in text:
-                            LOGGER.error("Your refresh interval is set too frequent for the Olarm API to handle")
-                            return {'error': text}
-                        
+                            LOGGER.error(
+                                "Your refresh interval is set too frequent for the Olarm API to handle"
+                            )
+                            self._device.add_error_to_device(text)
+                            return self._device
+
                         else:
                             LOGGER.error(
                                 "The api returned text instead of JSON. The text is:\n%s",
                                 text,
                             )
-                            return {'error': text}
+                            self._device.add_error_to_device(text)
+                            return self._device
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
-            return {'error': ex}
+            self._device.add_error_to_device(ex)
+            return self._device
 
     async def get_changed_by_json(self, area) -> dict:
         """
@@ -87,36 +122,55 @@ class OlarmApi:
         """
         return_data = {"userFullname": "No User", "actionCreated": 0, "actionCmd": None}
         try:
-            await asyncio.sleep(5)
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                    f"https://apiv4.olarm.co/api/v4/devices/{self._device.device_id}/actions",
                     headers=self.headers,
                 ) as response:
                     if response.status == 404:
-                        LOGGER.warning("Olarm has no saved history for device (%s)", self.device_name)
+                        LOGGER.warning(
+                            "Olarm has no saved history for device (%s)",
+                            self._device.device_name,
+                        )
                         return return_data
 
                     try:
                         changes = await response.json()
                         for change in changes:
-                            if (change["actionCmd"] not in ["zone-bypass", "pgm-open", "pgm-close", "pgm-pulse", "ukey-activate",] and int(change["actionNum"]) == int(area) and return_data["actionCreated"] < int(change["actionCreated"])):
+                            if (
+                                change["actionCmd"]
+                                not in [
+                                    "zone-bypass",
+                                    "pgm-open",
+                                    "pgm-close",
+                                    "pgm-pulse",
+                                    "ukey-activate",
+                                ]
+                                and int(change["actionNum"]) == int(area)
+                                and return_data["actionCreated"]
+                                < int(change["actionCreated"])
+                            ):
                                 return_data = change
-                    
+
                     except (APIContentTypeError, ContentTypeError):
                         text = response.text
-                        LOGGER.error("The Olarm API returned text instead of json. The text is:\n%s", text)
-                    
+                        LOGGER.error(
+                            "The Olarm API returned text instead of json. The text is:\n%s",
+                            text,
+                        )
+
                     try:
                         last_changed = datetime.strptime(
-                            time.ctime(int(return_data['actionCreated'])),
+                            time.ctime(int(return_data["actionCreated"])),
                             "%a %b  %d %X %Y",
                         )
-                        return_data['actionCreated'] = last_changed.strftime("%a %d %b %Y %X")
+                        return_data["actionCreated"] = last_changed.strftime(
+                            "%a %d %b %Y %X"
+                        )
 
                     except TypeError:
                         last_changed = None
-                    
+
                     await asyncio.sleep(5)
                     return return_data
 
@@ -136,18 +190,20 @@ class OlarmApi:
         """
         try:
             resp = await self.get_device_json()
-            if resp['error'] is None:
-                resp['auth_success'] = True
+            if resp["error"] is None:
+                resp["auth_success"] = True
                 return resp
 
             else:
-                resp['auth_success'] = False
+                resp["auth_success"] = False
                 return resp
-        
-        except Exception as ex:
-            return {'auth_success': False, 'error': ex}
 
-    async def get_sensor_states(self, devices_json) -> list:
+        except BaseException as ex:
+            return {"auth_success": False, "error": ex}
+
+    async def get_sensor_states(
+        self, devices_json: OlarmDevice
+    ) -> list[APISensorResponse]:
         """
         DOCSTRING:\tGets the state for each zone for each area of your alarm panel.
 
@@ -155,81 +211,38 @@ class OlarmApi:
 
         return:\tList:\t A sensor for each zone in each area of the alarm panel. As well as the power states.
         """
-        olarm_state = devices_json["deviceState"]
-        olarm_zones = devices_json["deviceProfile"]
+        olarm_state = devices_json.device_state
+        olarm_zones = devices_json.device_profile
 
-        self.data = []
+        self._sensor_data = []
 
         try:
             for zone in range(0, olarm_zones["zonesLimit"]):
-                if str(olarm_state["zones"][zone]).lower() == "a":
-                    state = "on"
-
-                else:
-                    state = "off"
-
-                try:
-                    last_changed = datetime.strptime(
-                        time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
-                        "%a %b  %d %X %Y",
+                self._sensor_data.append(
+                    APISensorResponse(
+                        state_data=olarm_state, zone_data=olarm_zones, index=zone
                     )
-                    last_changed = last_changed.strftime("%a %d %b %Y %X")
-
-                except TypeError:
-                    last_changed = None
-
-                if zone < len(olarm_zones["zonesLabels"]) and (
-                    olarm_zones["zonesLabels"][zone]
-                    or olarm_zones["zonesLabels"][zone] == ""
-                ):
-                    zone_name = olarm_zones["zonesLabels"][zone]
-                    zone_type = olarm_zones["zonesTypes"][zone]
-
-                else:
-                    zone_name = f"Zone {zone + 1}"
-                    zone_type = 0
-
-                self.data.append(
-                    {
-                        "name": zone_name,
-                        "state": state,
-                        "last_changed": last_changed,
-                        "type": zone_type,
-                        "zone_number": zone,
-                    }
                 )
 
-            zone = zone + 1
             for key, value in olarm_state["power"].items():
-                sensortype = 1000
-                if int(value) == 1:
-                    state = "on"
-
-                else:
-                    state = "off"
-
-                if key == "Batt":
-                    key = "Battery"
-                    sensortype = 1001
-
-                self.data.append(
-                    {
-                        "name": f"Powered by {key}",
-                        "state": state,
-                        "last_changed": None,
-                        "type": sensortype,
-                        "zone_number": zone,
-                    }
-                )
-                zone = zone + 1
-
-            return self.data
+                self._sensor_data.append(APIPowerResponse(name=key, state=value))
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm sensors error for  device (%s):\n%s", self.device_name, ex)
-            return self.data
+            self._device.add_error_to_device(
+                "Olarm sensors error for  device (%s):\n%s",
+                self._device.device_name,
+                ex,
+            )
+            LOGGER.error(
+                "Olarm sensors error for  device (%s):\n%s",
+                self._device.device_name,
+                ex,
+            )
 
-    async def get_sensor_bypass_states(self, devices_json) -> list:
+        finally:
+            return self._sensor_data
+
+    async def get_sensor_bypass_states(self, devices_json) -> list[APIBypassResponse]:
         """
         DOCSTRING:\tGets the bypass state for each zone for each area of your alarm panel.
 
@@ -237,86 +250,74 @@ class OlarmApi:
 
         return:\tList:\t A sensor for each zone's bypass state in each area of the alarm panel.
         """
-        olarm_state = devices_json["deviceState"]
-        olarm_zones = devices_json["deviceProfile"]
+        olarm_state = devices_json.device_state
+        olarm_zones = devices_json.device_profile
 
-        self.bypass_data = []
+        self._bypass_data = []
         try:
             for zone in range(0, olarm_zones["zonesLimit"]):
-                if str(olarm_state["zones"][zone]).lower() == "b":
-                    state = "on"
-
-                else:
-                    state = "off"
-
-                last_changed = datetime.strptime(
-                    time.ctime(int(olarm_state["zonesStamp"][zone]) / 1000),
-                    "%a %b  %d %X %Y",
-                ) + timedelta(hours=2)
-
-                last_changed = last_changed.strftime("%a %d %b %Y %X")
-
-                if zone < len(olarm_zones["zonesLabels"]) and (
-                    olarm_zones["zonesLabels"][zone]
-                    or olarm_zones["zonesLabels"][zone] == ""
-                ):
-                    zone_name = olarm_zones["zonesLabels"][zone]
-
-                else:
-                    zone_name = f"Zone {zone + 1}"
-
-                self.bypass_data.append(
-                    {
-                        "name": zone_name,
-                        "state": state,
-                        "last_changed": last_changed,
-                        "zone_number": zone,
-                    }
-                )
-
-            return self.bypass_data
+                if zone < len(olarm_state["zones"]):
+                    self._bypass_data.append(
+                        APIBypassResponse(
+                            state_data=olarm_state, zone_data=olarm_zones, index=zone
+                        )
+                    )
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm Bypass sensors error for device (%s):\n%s", self.device_name, ex)
-            return self.bypass_data
+            self._device.add_error_to_device(
+                "Olarm Bypass sensors error for device (%s):\n%s",
+                self._device.device_name,
+                ex,
+            )
+            LOGGER.error(
+                "Olarm Bypass sensors error for device (%s):\n%s",
+                self._device.device_name,
+                ex,
+            )
+            self._device.add_error_to_device(ex)
 
-    async def get_panel_states(self, devices_json) -> list:
+        finally:
+            return self._bypass_data
+
+    async def get_panel_states(self, devices_json) -> list[APIAreaResponse]:
         """
         DOCSTRING:\tGets the state of each zone for the alarm panel from Olarm.
         params:\n\t device_json (dict): The device json from get_devices_json.
 
         return: (list):\tThe state for each are of the alarm panel.
         """
-        olarm_state = devices_json["deviceState"]
-        zones = devices_json["deviceProfile"]
-        olarm_zones = zones["areasLabels"]
+        olarm_state = devices_json.device_state
+        zones = devices_json.device_profile
+        olarm_areas = zones["areasLabels"]
 
-        self.panel_data = []
+        self._panel_data = []
 
-        area_count = zones["areasLimit"]
-        for area_num in range(area_count):
+        for area_num in range(0, zones["areasLimit"]):
             try:
-                if olarm_zones[area_num] == "":
-                    LOGGER.warning(
-                        "This device's area names have not been set up in Olarm, generating automatically"
-                    )
-                    olarm_zones[area_num] = f"Area {area_num + 1}"
-
-                if len(olarm_state["areas"]) > area_num:
-                    self.panel_data.append(
-                        {
-                            "name": f"{olarm_zones[area_num]}",
-                            "state": olarm_state["areas"][area_num],
-                            "area_number": area_num + 1,
-                        }
+                if area_num < len(olarm_state["areas"]):
+                    self._panel_data.append(
+                        APIAreaResponse(
+                            area_data=olarm_areas,
+                            state_data=olarm_state,
+                            index=area_num,
+                        )
                     )
 
             except (DictionaryKeyError, KeyError) as ex:
-                LOGGER.error("Olarm API Panel error for device (%s):\n%s", self.device_name, ex)
+                self._device.add_error_to_device(
+                    "Olarm API Panel error for device (%s):\n%s",
+                    self._device.device_name,
+                    ex,
+                )
+                LOGGER.error(
+                    "Olarm API Panel error for device (%s):\n%s",
+                    self._device.device_name,
+                    ex,
+                )
 
-        return self.panel_data
+        return self._panel_data
 
-    async def get_pgm_zones(self, devices_json) -> list:
+    async def get_pgm_zones(self, devices_json) -> list[APIPGMResponse]:
         """
         Gets all the pgm's for the alarm panel.
         params:\n\t device_json (dict): The device json from get_devices_json.
@@ -324,102 +325,69 @@ class OlarmApi:
         return: (list):\tThe pgm's for the alarm panel.
         """
         try:
-            pgm_state = devices_json["deviceState"]["pgm"]
-            pgm_labels = devices_json["deviceProfile"]["pgmLabels"]
-            pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
-            pgm_setup = devices_json["deviceProfile"]["pgmControl"]
+            pgm_state = devices_json.device_state["pgm"]
+            pgm_labels = devices_json.device_profile["pgmLabels"]
+            pgm_setup = devices_json.device_profile["pgmControl"]
+            pgm_limit = devices_json.device_profile["pgmLimit"]
+
+            for i in range(0, pgm_limit):
+                self._pgm_data.append(
+                    APIPGMResponse(
+                        pgm_state=pgm_state,
+                        pgm_labels=pgm_labels,
+                        pgm_setup=pgm_setup,
+                        index=i,
+                    )
+                )
 
         except (DictionaryKeyError, KeyError):
             # Error with PGM setup from Olarm app. Skipping PGM's
-            LOGGER.error(
-                "Error geting pgm setup data for Olarm device (%s)", self.device_id
+            self._device.add_error_to_device(
+                "Error geting pgm setup data for Olarm device (%s)",
+                self._device.device_name,
             )
-            return []
+            LOGGER.error(
+                "Error geting pgm setup data for Olarm device (%s)",
+                self._device.device_name,
+            )
 
-        pgms = []
-        try:
-            for i in range(0, pgm_limit):
-                state = str(pgm_state[i]).lower() == "a"
-                name = pgm_labels[i]
-                if pgm_setup[i] == "":
-                    continue
+        finally:
+            return self._pgm_data
 
-                try:
-                    enabled = pgm_setup[i][0] == "1"
-
-                except ListIndexError:
-                    continue
-
-                try:
-                    pulse = pgm_setup[i][2] == "1"
-
-                except ListIndexError:
-                    continue
-
-                number = i + 1
-
-                if name == "":
-                    LOGGER.debug(
-                        "PGM name not set. Generating automatically. PGM %s", number
-                    )
-                    name = f"PGM {number}"
-
-                pgms.append(
-                    {
-                        "name": name,
-                        "enabled": enabled,
-                        "pulse": pulse,
-                        "state": state,
-                        "pgm_number": number,
-                    }
-                )
-            return pgms
-
-        except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm PGM Error for device (%s):\n%s", self.device_name, ex)
-            return pgms
-
-    async def get_ukey_zones(self, devices_json) -> list:
+    async def get_ukey_zones(self, devices_json) -> list[APIUkeyResponse]:
         """
         Gets all the Utility keys for the alarm panel.
         params:\n\t device_json (dict): The device json from get_devices_json.
 
         return: (list):\tThe utility keys for the alarm panel.
         """
-        ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
-        ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
-        ukey_state = devices_json["deviceProfile"]["ukeysControl"]
-        ukeys = []
         try:
+            ukey_labels = devices_json.device_profile["ukeysLabels"]
+            ukey_limit = devices_json.device_profile["ukeysLimit"]
+            ukey_state = devices_json.device_profile["ukeysControl"]
             for i in range(0, ukey_limit):
-                try:
-                    state = int(ukey_state[i]) == 1
-                    name = ukey_labels[i]
-                    number = i + 1
-
-                    if name == "":
-                        LOGGER.debug(
-                            "Ukey name not set. Generating automatically. Ukey %s",
-                            number,
-                        )
-                        name = f"Ukey {number}"
-
-                    ukeys.append({"name": name, "state": state, "ukey_number": number})
-
-                except (DictionaryKeyError, KeyError) as ex:
-                    LOGGER.error("Olarm Ukey Error for device (%s):\n%s", self.device_name, ex)
-                    return []
-
-            return ukeys
+                self._ukey_data.append(
+                    APIUkeyResponse(
+                        ukey_state=ukey_state, ukey_labels=ukey_labels, index=i
+                    )
+                )
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm Ukey error for device (%s):\n%s", self.device_name, ex)
+            self._device.add_error_to_device(
+                "Olarm Ukey error for device (%s):\n%s", self._device.device_name, ex
+            )
+            LOGGER.error(
+                "Olarm Ukey error for device (%s):\n%s", self._device.device_name, ex
+            )
 
-    async def get_alarm_trigger(self, devices_json) -> list:
+        finally:
+            return self._ukey_data
+
+    async def get_alarm_trigger(self, devices_json) -> list[str]:
         """
         Returns the data for the zones that triggered an alarm for the area.
         """
-        return devices_json["deviceState"]["areasDetail"]
+        return devices_json.device_state["areasDetail"]
 
     async def send_action(self, post_data) -> bool:
         """
@@ -429,22 +397,37 @@ class OlarmApi:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url=f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
+                    url=f"https://apiv4.olarm.co/api/v4/devices/{self._device.device_id}/actions",
                     data=post_data,
                     headers=self.headers,
                 ) as response:
                     try:
                         resp = await response.json()
                         return str(resp["actionStatus"]).lower() == "ok"
-                    
+
                     except (APIContentTypeError, ContentTypeError):
                         text = await response.text()
-                        LOGGER.error("Error Bypassing zone: %s on device (%s).\n\n%s", post_data['actionNum'], self.device_name, text)
-            
+                        self._device.add_error_to_device(
+                            "Error Sending action on device (%s).\n\n%s",
+                            self._device.device_name,
+                            text,
+                        )
+                        LOGGER.error(
+                            "Error Sending action on device (%s).\n\n%s",
+                            self._device.device_name,
+                            text,
+                        )
+
         except APIClientConnectorError as ex:
+            self._device.add_error_to_device(
+                "Olarm API send action error on device (%s):\nCould not set action:\t %s due to error:\n%s",
+                self._device.device_name,
+                post_data,
+                ex,
+            )
             LOGGER.error(
-                "Olarm API update zone error on device (%s):\nCould not set action:\t %s due to error:\n%s",
-                self.device_name,
+                "Olarm API send action error on device (%s):\nCould not set action:\t %s due to error:\n%s",
+                self._device.device_name,
                 post_data,
                 ex,
             )
@@ -455,34 +438,14 @@ class OlarmApi:
         DOCSTRING:\tSends an action to the Olarm API to perform a pgm action on the device.
         params:\n\tpost_data (dict): The pgm to perform the action to. As well as the action.
         """
-        try:
-            return await self.send_action(pgm_data)
-
-        except APIClientConnectorError as ex:
-            LOGGER.error(
-                "Olarm API update pgm error on device (%s):\nCould not set action:\t %s due to error:\n%s",
-                self.device_name,
-                pgm_data,
-                ex,
-            )
-            return False
+        return await self.send_action(pgm_data)
 
     async def update_ukey(self, ukey_data) -> bool:
         """
         DOCSTRING:\tSends an action to the Olarm API to perform a pgm action on the device.
         params:\n\tukey_data (dict): The ukey to perform the action to. As well as the action.
         """
-        try:
-            return await self.send_action(ukey_data)
-
-        except APIClientConnectorError as ex:
-            LOGGER.error(
-                "Olarm API update ukey error on device (%s):\nCould not set action:\t %s due to error:\n%s",
-                self.device_name,
-                ukey_data,
-                ex,
-            )
-            return False
+        return await self.send_action(ukey_data)
 
     async def arm_area(self, area=None) -> bool:
         """
@@ -527,7 +490,7 @@ class OlarmApi:
         }
         return await self.send_action(post_data)
 
-    async def get_all_devices(self) -> list:
+    async def get_all_devices(self) -> list[OlarmDevice]:
         """
         This method gets and returns the devices from the Olarm API:
 
@@ -541,8 +504,10 @@ class OlarmApi:
                 ) as response:
                     try:
                         olarm_resp = await response.json()
-                        self.devices = olarm_resp["data"]
-                        return self.devices
+                        for device in olarm_resp["data"]:
+                            self._devices.append(
+                                OlarmDevice(data=device, hass=self._hass)
+                            )
 
                     except (APIContentTypeError, ContentTypeError):
                         text = await response.text()
@@ -550,22 +515,23 @@ class OlarmApi:
                             LOGGER.error(
                                 "Could not get JSON data due to incorrect API key. Please update the api key"
                             )
-                            return []
-                        
+
                         elif "Too Many Requests" in text:
-                            LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
-                            return []
-                        
+                            LOGGER.error(
+                                "Your api key has been blocked due to too many frequent updates. Please regenerate the api key"
+                            )
+
                         else:
                             LOGGER.error(
                                 "The api returned text instead of JSON. The text is:\n%s",
                                 text,
                             )
-                            return []
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
-            return []
+
+        finally:
+            return self._devices
 
 
 class OlarmSetupApi:
@@ -576,16 +542,18 @@ class OlarmSetupApi:
         \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
     """
 
-    def __init__(self, api_key) -> None:
+    _devices: list[OlarmDevice]
+
+    def __init__(self, api_key: str) -> None:
         """
         Initatiates a connection to the Olarm API.
         params:
         \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
         """
-        self.data = []
+        self._devices = []
         self.headers = {"Authorization": f"Bearer {api_key}"}
 
-    async def get_olarm_devices(self) -> list:
+    async def get_olarm_devices(self) -> list[OlarmDevice]:
         """
         This method gets and returns the devices from the Olarm API:
 
@@ -599,28 +567,29 @@ class OlarmSetupApi:
                 ) as response:
                     try:
                         olarm_resp = await response.json()
-                        self.data = olarm_resp["data"]
-                        return self.data
+                        for device in olarm_resp["data"]:
+                            self._devices.append(OlarmDevice(data=device, hass=None))
 
-                    except (ContentTypeError, APIContentTypeError):
+                    except (APIContentTypeError, ContentTypeError):
                         text = await response.text()
                         if "Forbidden" in text:
                             LOGGER.error(
                                 "Could not get JSON data due to incorrect API key. Please update the api key"
                             )
-                            return None
-                        
+
                         elif "Too Many Requests" in text:
-                            LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
-                            return None
-                        
+                            LOGGER.error(
+                                "Your api key has been blocked due to too many frequent updates. Please regenerate the api key"
+                            )
+
                         else:
                             LOGGER.error(
-                                "The setup api returned text instead of JSON. The text is:\n%s",
+                                "The api returned text instead of JSON. The text is:\n%s",
                                 text,
                             )
-                            return None
 
         except APIClientConnectorError as ex:
-            LOGGER.error("Olarm SetupAPI Devices error\n%s", ex)
-            return []
+            LOGGER.error("Olarm API Devices error\n%s", ex)
+
+        finally:
+            return self._devices
