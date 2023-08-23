@@ -8,13 +8,15 @@ from .olarm_api import OlarmSetupApi
 from .const import (
     AUTHENTICATION_ERROR,
     DOMAIN,
+    CONF_DEVICE_FIRMWARE,
     CONF_ALARM_CODE,
     LOGGER,
+    OLARM_DEVICES,
     CONF_OLARM_DEVICES,
     OLARM_DEVICE_AMOUNT,
     OLARM_DEVICE_NAMES,
 )
-from .exceptions import APIForbiddenError
+from .exceptions import APIForbiddenError, APINotFoundError
 from typing import Any
 
 
@@ -47,7 +49,9 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_SCAN_INTERVAL] = "Scan interval is required."
 
             elif user_input[CONF_SCAN_INTERVAL] < 5:
-                errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 5 seconds."
+                errors[
+                    CONF_SCAN_INTERVAL
+                ] = "Scan interval must be at least 5 seconds."
 
             api_key = user_input[CONF_API_KEY]
             scan_interval = user_input[CONF_SCAN_INTERVAL]
@@ -67,7 +71,7 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "User entered invalid credentials or API access is not enabled!"
                 )
                 errors[AUTHENTICATION_ERROR] = "Invalid credentials!"
-
+            
             if json is None:
                 errors[AUTHENTICATION_ERROR] = "Invalid credentials!"
 
@@ -76,8 +80,9 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self._show_setup_form(errors=errors)
 
             # If there are no errors, create a config entry and return
+            firmware = json[0]["deviceFirmware"]
 
-            setup_devices = [dev.device_name for dev in json]
+            setup_devices = [dev["deviceName"] for dev in json]
 
             # Saving the device
             return self.async_create_entry(
@@ -85,8 +90,10 @@ class OlarmSensorsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_API_KEY: api_key,
                     CONF_SCAN_INTERVAL: scan_interval,
+                    CONF_DEVICE_FIRMWARE: firmware,
                     CONF_ALARM_CODE: alarm_code,
                     CONF_OLARM_DEVICES: setup_devices,
+                    OLARM_DEVICES: json,
                     OLARM_DEVICE_AMOUNT: len(json),
                     OLARM_DEVICE_NAMES: setup_devices,
                 },
