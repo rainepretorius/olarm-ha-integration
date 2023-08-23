@@ -1,5 +1,6 @@
 # Olarm Home Assistant Integration
 <a href="https://www.buymeacoffee.com/rainepretorius"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=rainepretorius&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
 ## Supported Devices
 The integration currently supports all the alarm panels and electric fence energizers listed [here](https://olarm.com/works-with) on Olarm's website.
