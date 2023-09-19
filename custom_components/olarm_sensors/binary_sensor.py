@@ -213,7 +213,7 @@ class OlarmSensor(BinarySensorEntity):
         Setting the icon of the entity depending on the state of the zone.
         """
         # Motion Sensor
-        if "pir" in self.sensor_name.lower():
+        if self._attr_device_class == BinarySensorDeviceClass.MOTION or "pir" in self.sensor_name.lower():
             if self.is_on:
                 return "mdi:motion-sensor"
 
@@ -221,9 +221,7 @@ class OlarmSensor(BinarySensorEntity):
                 return "mdi:motion-sensor-off"
 
         # Window Sensor
-        elif (
-            "windows" in self.sensor_name.lower() or "wind" in self.sensor_name.lower()
-        ):
+        elif self._attr_device_class == BinarySensorDeviceClass.WINDOW or "windows" in self.sensor_name.lower() or "wind" in self.sensor_name.lower():
             if self.is_on:
                 return "mdi:window-open"
 
@@ -231,7 +229,7 @@ class OlarmSensor(BinarySensorEntity):
                 return "mdi:window-closed"
 
         # Door Sensor
-        elif "door" in self.sensor_name.lower():
+        elif self._attr_device_class == BinarySensorDeviceClass.DOOR or "door" in self.sensor_name.lower():
             if self.is_on:
                 return "mdi:door-open"
 
@@ -239,7 +237,7 @@ class OlarmSensor(BinarySensorEntity):
                 return "mdi:door-closed"
 
         # Powered by AC
-        elif "ac" in self.sensor_name.lower():
+        elif self._attr_device_class == BinarySensorDeviceClass.PLUG or "ac" in self.sensor_name.lower():
             if self.is_on:
                 return "mdi:power-plug"
 
@@ -247,8 +245,12 @@ class OlarmSensor(BinarySensorEntity):
                 return "mdi:power-plug-off"
 
         # Powered By Battery
-        elif "batt" in self.sensor_name.lower():
-            return "mdi:battery"
+        elif self._attr_device_class == BinarySensorDeviceClass.POWER or "batt" in self.sensor_name.lower():
+            if self.is_on:
+                return "mdi:battery"
+
+            else:
+                return "mdi:battery-off"
 
         # Motion Sensor if no match
         else:
