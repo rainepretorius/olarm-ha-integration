@@ -70,3 +70,5 @@ body:
       label: Downloaded integration debug logs.
       description: Please copy and paste the contents of the Olarm debug logs here.
       render: shell
+    validations:
+      required: true
