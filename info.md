@@ -7,6 +7,9 @@ The integration currently supports all the alarm panels and electric fence energ
 
 Please note that the integration has currently only been tested on a Paradox MG 5050+ alarm system by the maintainer, but should work for all devices.
 
+## Important Notice
+Please also note that due to Olarm limiting api calls, there will be issues when your refresh rate is set too frequent or you have multiple devices selected/enabled.
+
 ## Issues
 If you encounter an error with the integration, resulting in its malfunction or failure to function as intended, please create an issue on the repository's [Github](https://github.com/rainepretorius/olarm-ha-integration/issues) page. Please also check that your issue  has not all ready been asked and answered. Else it will be closed.
 
@@ -14,12 +17,10 @@ If you encounter an error with the integration, resulting in its malfunction or 
 1. Install via HACS.
 2. Restart Home Assistant.
 3. Get your Olarm API key at: https://user.olarm.co/#/api.
-4. Navigate to the Devices and Services tab under Settings.
-5. Click on Add Integration.
-6. Search for Olarm Sensors.
-7. Enter these details in the fields in the popup. (Only API key is needed)
+4. [Add Integration Here](https://my.home-assistant.io/redirect/config_flow_start/?domain=olarm_sensors)
+5. Enter these details in the fields in the popup. (Only API key is needed)
    It gets all the devices associated with the API key automatically.
-8. Select the Scan Interval in seconds. This is the interval in seconds that Home Assistant will refresh the entity states.
+6. Select the Scan Interval in seconds. This is the interval in seconds that Home Assistant will refresh the entity states.
 
 ## Setup of the Integration / Platforms Used
 
@@ -33,6 +34,7 @@ Binary sensors are used for simple alarm panel zones and sensors. The following 
 
 ### Alarm Control Panel
 There is an alarm control panel for each area enabled on your alarm panel. This allows you to set the state of each area individually. If you have a nemtek electric fence, the integration is currently coded to enable arming and disarming of the electric fence.
+The integration can trigger your armed response radio if it is triggered via a PGM. Please rename the pgm in the Olarm App to Radio Alarm.
 
 ### Buttons
 There are buttons to refresh the data from the Olarm API, activate the PGM's, and activate Utility keys. The following is how it is set up:

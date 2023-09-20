@@ -2,6 +2,7 @@
 from __future__ import annotations
 from collections.abc import Iterable, Callable
 from typing import Any
+import asyncio
 from homeassistant.components.alarm_control_panel import AlarmControlPanelEntity
 from homeassistant.components.alarm_control_panel import CodeFormat
 from homeassistant.components.alarm_control_panel import const
@@ -37,7 +38,7 @@ async def async_setup_entry(
             continue
 
         LOGGER.info("Setting up Alarm Panels for device (%s)", device["deviceName"])
-        
+
         # Getting the instance of the DataCoordinator to update the data from Olarm.
         coordinator = hass.data[DOMAIN][device["deviceId"]]
 
@@ -73,7 +74,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
     """
 
     coordinator: OlarmCoordinator
-
+    _trigger_pgm = None
     _changed_by: str | None = None
     _last_changed: Any | None = None
     _state: str | None = None
@@ -83,7 +84,11 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
     def __init__(self, coordinator, sensor_name, state, area) -> None:
         """Initialize the Olarm Alarm Control Panel."""
-        LOGGER.info("Initializing Olarm Alarm Control Panel for area (%s) device (%s)", sensor_name, coordinator.olarm_device_name)
+        LOGGER.info(
+            "Initializing Olarm Alarm Control Panel for area (%s) device (%s)",
+            sensor_name,
+            coordinator.olarm_device_name,
+        )
         super().__init__(coordinator)
         self._state = OLARM_STATE_TO_HA.get(state)
         self.sensor_name = sensor_name
@@ -97,6 +102,12 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
             except CodeTypeError:
                 self.format = CodeFormat.TEXT
+
+        for sensor in self.coordinator.pgm_data:
+            # Creating a sensor for each zone on the alarm panel.
+            if "Radio Alarm" in sensor["name"]:
+                self._trigger_pgm = sensor
+                break
 
     @property
     def name(self) -> str:
@@ -154,11 +165,20 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
             return const.AlarmControlPanelEntityFeature.ARM_AWAY
 
         else:
-            return (
-                const.AlarmControlPanelEntityFeature.ARM_AWAY
-                | const.AlarmControlPanelEntityFeature.ARM_HOME
-                | const.AlarmControlPanelEntityFeature.ARM_NIGHT
-            )
+            if self._trigger_pgm is None:
+                return (
+                    const.AlarmControlPanelEntityFeature.ARM_AWAY
+                    | const.AlarmControlPanelEntityFeature.ARM_HOME
+                    | const.AlarmControlPanelEntityFeature.ARM_NIGHT
+                )
+
+            else:
+                return (
+                    const.AlarmControlPanelEntityFeature.ARM_AWAY
+                    | const.AlarmControlPanelEntityFeature.ARM_HOME
+                    | const.AlarmControlPanelEntityFeature.ARM_NIGHT
+                    | const.AlarmControlPanelEntityFeature.TRIGGER
+                )
 
     @property
     def available(self):
@@ -187,7 +207,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         return {
             "last_changed": self._last_changed,
-            'changed_by': self._changed_by,
+            "changed_by": self._changed_by,
             "area_trigger": self._area_trigger,
             "last_action": self._last_action,
             "code_format": self.code_format,
@@ -201,7 +221,9 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         """
         if self.check_code(code):
             LOGGER.info(
-                "Area '%s' on Olarm device (%s) has been disarmed", self.sensor_name, self.coordinator.olarm_device_name
+                "Area '%s' on Olarm device (%s) has been disarmed",
+                self.sensor_name,
+                self.coordinator.olarm_device_name,
             )
             resp = await self.coordinator.api.disarm_area(self.area)
             await self.coordinator.async_update_panel_data()
@@ -253,7 +275,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
 
         else:
             LOGGER.error(
-                "Invalid code given to set area 's' to armed_away (Arm) for Olarm device (%s)",
+                "Invalid code given to set area '%s' to armed_away (Arm) for Olarm device (%s)",
                 self.sensor_name,
                 self.coordinator.olarm_device_name,
             )
@@ -300,7 +322,7 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         ):
             # Only update the state from the api if it has been more than 1.5 times the scan interval since the last update.
             await self.coordinator.async_update_panel_data()
-        
+
         # Setting the state.
         try:
             self._state = OLARM_STATE_TO_HA.get(
@@ -309,15 +331,38 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
         except ListIndexError:
             pass
             LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
-            
+
         # Setting the area triggers.
         try:
             self._area_trigger = self.coordinator.area_triggers[self.area - 1]
         except ListIndexError:
             LOGGER.error("Could not set area triggers for %s", self.sensor_name)
-        
+
         return self.coordinator.last_update_success
-    
+
+    async def async_alarm_trigger(self, code: str | None = None) -> None:
+        """Send alarm trigger command."""
+        if self._trigger_pgm is None:
+            raise NotImplementedError()
+
+        self._post_data = {
+            "actionCmd": "pgm-close",
+            "actionNum": self._trigger_pgm["pgm_number"],
+        }
+
+        LOGGER.info("Triggering alarm for %s", self.coordinator.olarm_device_name)
+        self.coordinator.api.send_action(self._post_data)
+
+        await asyncio.sleep(45)
+        LOGGER.info("Triggered alarm for %s", self.coordinator.olarm_device_name)
+
+        self._post_data = {
+            "actionCmd": "pgm-open",
+            "actionNum": self._trigger_pgm["pgm_number"],
+        }
+
+        self.coordinator.api.send_action(self._post_data)
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """
@@ -333,13 +378,13 @@ class OlarmAlarm(CoordinatorEntity, AlarmControlPanelEntity):
             )
         except ListIndexError:
             LOGGER.error("Could not set alarm panel state for %s", self.sensor_name)
-        
+
         # Setting the area triggers.
         try:
             self._area_trigger = self.coordinator.area_triggers[self.area - 1]
         except ListIndexError:
             LOGGER.error("Could not set area triggers for %s", self.sensor_name)
-        
+
         super()._handle_coordinator_update()
 
     def check_code(self, entered_code=None) -> bool:
