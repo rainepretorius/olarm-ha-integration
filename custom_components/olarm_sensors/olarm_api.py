@@ -9,8 +9,9 @@ from .exceptions import (
     APINotFoundError,
     APIContentTypeError
 )
+from aiohttp.client_exceptions import ContentTypeError
 from datetime import datetime, timedelta
-
+import asyncio
 
 class OlarmApi:
     """
@@ -20,7 +21,7 @@ class OlarmApi:
         \tapi_key (str): The key can be passed in an authorization header to authenticate to Olarm.
     """
 
-    def __init__(self, device_id, api_key) -> None:
+    def __init__(self, device_id, api_key, device_name="") -> None:
         """
         Initatiates a connection to the Olarm API.
         params:
@@ -33,10 +34,10 @@ class OlarmApi:
         self.bypass_data = []
         self.panel_data = []
         self.devices = []
+        self.device_name = device_name
         self.headers = {
             "Authorization": f"Bearer {api_key}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-            "Sec-Ch-Ua": '"Google Chrome";v="113", "Chromium";v="113", "Not-A.Brand";v="24"',
+            "User-Agent": "Home Assistant"
         }
 
     async def get_device_json(self) -> dict:
@@ -51,30 +52,33 @@ class OlarmApi:
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}",
                     headers=self.headers,
                 ) as response:
-                    return await response.json()
+                    try:
+                        resp = await response.json()
+                        resp['error'] = None
+                        return resp
+        
+                    except (APIContentTypeError, ContentTypeError) :
+                        text = await response.text()
+                        if "Forbidden" in text:
+                            LOGGER.error(
+                                "Could not get JSON data due to incorrect API key. Please update the api key"
+                            )
+                            return {'error': text}
+                        
+                        elif "Too Many Requests" in text:
+                            LOGGER.error("Your refresh interval is set too frequent for the Olarm API to handle")
+                            return {'error': text}
+                        
+                        else:
+                            LOGGER.error(
+                                "The api returned text instead of JSON. The text is:\n%s",
+                                text,
+                            )
+                            return {'error': text}
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
-            return {}
-        
-        except APIContentTypeError:
-            text = await response.text()
-            if "Forbidden" in text:
-                LOGGER.error(
-                    "Could not get JSON data due to incorrect API key. Please update the api key"
-                )
-                return {}
-            
-            elif "Too many Requests" in text:
-                LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
-                return {}
-            
-            else:
-                LOGGER.error(
-                    "The api returned text instead of JSON. The text is:\n%s",
-                    text,
-                )
-                return {}
+            return {'error': ex}
 
     async def get_changed_by_json(self, area) -> dict:
         """
@@ -83,32 +87,37 @@ class OlarmApi:
         """
         return_data = {"userFullname": "No User", "actionCreated": 0, "actionCmd": None}
         try:
+            await asyncio.sleep(5)
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"https://apiv4.olarm.co/api/v4/devices/{self.device_id}/actions",
                     headers=self.headers,
                 ) as response:
                     if response.status == 404:
-                        LOGGER.error("Olarm API actions endpoint returned 404")
+                        LOGGER.warning("Olarm has no saved history for device (%s)", self.device_name)
                         return return_data
 
-                    changes = await response.json()
-                    for change in changes:
-                        if (
-                            change["actionCmd"]
-                            not in [
-                                "zone-bypass",
-                                "pgm-open",
-                                "pgm-close",
-                                "pgm-pulse",
-                                "ukey-activate",
-                            ]
-                            and int(change["actionNum"]) == int(area)
-                            and return_data["actionCreated"]
-                            < int(change["actionCreated"])
-                        ):
-                            return_data = change
+                    try:
+                        changes = await response.json()
+                        for change in changes:
+                            if (change["actionCmd"] not in ["zone-bypass", "pgm-open", "pgm-close", "pgm-pulse", "ukey-activate",] and int(change["actionNum"]) == int(area) and return_data["actionCreated"] < int(change["actionCreated"])):
+                                return_data = change
+                    
+                    except (APIContentTypeError, ContentTypeError):
+                        text = response.text
+                        LOGGER.error("The Olarm API returned text instead of json. The text is:\n%s", text)
+                    
+                    try:
+                        last_changed = datetime.strptime(
+                            time.ctime(int(return_data['actionCreated'])),
+                            "%a %b  %d %X %Y",
+                        )
+                        return_data['actionCreated'] = last_changed.strftime("%a %d %b %Y %X")
 
+                    except TypeError:
+                        last_changed = None
+                    
+                    await asyncio.sleep(5)
                     return return_data
 
         except APIClientConnectorError as ex:
@@ -125,7 +134,18 @@ class OlarmApi:
 
         return (dict):\tThe device json from Olarm.
         """
-        return await self.get_device_json()
+        try:
+            resp = await self.get_device_json()
+            if resp['error'] is None:
+                resp['auth_success'] = True
+                return resp
+
+            else:
+                resp['auth_success'] = False
+                return resp
+        
+        except Exception as ex:
+            return {'auth_success': False, 'error': ex}
 
     async def get_sensor_states(self, devices_json) -> list:
         """
@@ -206,7 +226,7 @@ class OlarmApi:
             return self.data
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm Bypass sensors error:\n%s", ex)
+            LOGGER.error("Olarm sensors error for  device (%s):\n%s", self.device_name, ex)
             return self.data
 
     async def get_sensor_bypass_states(self, devices_json) -> list:
@@ -257,7 +277,7 @@ class OlarmApi:
             return self.bypass_data
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm Bypass sensors error:\n%s", ex)
+            LOGGER.error("Olarm Bypass sensors error for device (%s):\n%s", self.device_name, ex)
             return self.bypass_data
 
     async def get_panel_states(self, devices_json) -> list:
@@ -292,7 +312,7 @@ class OlarmApi:
                     )
 
             except (DictionaryKeyError, KeyError) as ex:
-                LOGGER.error("Olarm API Panel error:\n%s", ex)
+                LOGGER.error("Olarm API Panel error for device (%s):\n%s", self.device_name, ex)
 
         return self.panel_data
 
@@ -311,7 +331,7 @@ class OlarmApi:
 
         except (DictionaryKeyError, KeyError):
             # Error with PGM setup from Olarm app. Skipping PGM's
-            LOGGER.debug(
+            LOGGER.error(
                 "Error geting pgm setup data for Olarm device (%s)", self.device_id
             )
             return []
@@ -356,7 +376,7 @@ class OlarmApi:
             return pgms
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm PGM Error:\n%s", ex)
+            LOGGER.error("Olarm PGM Error for device (%s):\n%s", self.device_name, ex)
             return pgms
 
     async def get_ukey_zones(self, devices_json) -> list:
@@ -387,13 +407,13 @@ class OlarmApi:
                     ukeys.append({"name": name, "state": state, "ukey_number": number})
 
                 except (DictionaryKeyError, KeyError) as ex:
-                    LOGGER.error("Olarm Ukey Error:\n%s", ex)
+                    LOGGER.error("Olarm Ukey Error for device (%s):\n%s", self.device_name, ex)
                     return []
 
             return ukeys
 
         except (DictionaryKeyError, KeyError, IndexError, ListIndexError) as ex:
-            LOGGER.error("Olarm Ukey error:\n%s", ex)
+            LOGGER.error("Olarm Ukey error for device (%s):\n%s", self.device_name, ex)
 
     async def get_alarm_trigger(self, devices_json) -> list:
         """
@@ -413,12 +433,18 @@ class OlarmApi:
                     data=post_data,
                     headers=self.headers,
                 ) as response:
-                    resp = await response.json()
-                    return str(resp["actionStatus"]).lower() == "ok"
-
+                    try:
+                        resp = await response.json()
+                        return str(resp["actionStatus"]).lower() == "ok"
+                    
+                    except (APIContentTypeError, ContentTypeError):
+                        text = await response.text()
+                        LOGGER.error("Error Bypassing zone: %s on device (%s).\n\n%s", post_data['actionNum'], self.device_name, text)
+            
         except APIClientConnectorError as ex:
             LOGGER.error(
-                "Olarm API update zone error:\nCould not set action:\t %s due to error:\n%s",
+                "Olarm API update zone error on device (%s):\nCould not set action:\t %s due to error:\n%s",
+                self.device_name,
                 post_data,
                 ex,
             )
@@ -434,7 +460,8 @@ class OlarmApi:
 
         except APIClientConnectorError as ex:
             LOGGER.error(
-                "Olarm API update pgm error:\nCould not set action:\t %s due to error:\n%s",
+                "Olarm API update pgm error on device (%s):\nCould not set action:\t %s due to error:\n%s",
+                self.device_name,
                 pgm_data,
                 ex,
             )
@@ -450,7 +477,8 @@ class OlarmApi:
 
         except APIClientConnectorError as ex:
             LOGGER.error(
-                "Olarm API update ukey error:\nCould not set action:\t %s due to error:\n%s",
+                "Olarm API update ukey error on device (%s):\nCould not set action:\t %s due to error:\n%s",
+                self.device_name,
                 ukey_data,
                 ex,
             )
@@ -511,32 +539,33 @@ class OlarmApi:
                     "https://apiv4.olarm.co/api/v4/devices",
                     headers=self.headers,
                 ) as response:
-                    olarm_resp = await response.json()
-                    self.devices = olarm_resp["data"]
-                    return self.devices
+                    try:
+                        olarm_resp = await response.json()
+                        self.devices = olarm_resp["data"]
+                        return self.devices
+
+                    except (APIContentTypeError, ContentTypeError):
+                        text = await response.text()
+                        if "Forbidden" in text:
+                            LOGGER.error(
+                                "Could not get JSON data due to incorrect API key. Please update the api key"
+                            )
+                            return []
+                        
+                        elif "Too Many Requests" in text:
+                            LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
+                            return []
+                        
+                        else:
+                            LOGGER.error(
+                                "The api returned text instead of JSON. The text is:\n%s",
+                                text,
+                            )
+                            return []
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm API Devices error\n%s", ex)
             return []
-        
-        except APIContentTypeError:
-            text = await response.text()
-            if "Forbidden" in text:
-                LOGGER.error(
-                    "Could not get JSON data due to incorrect API key. Please update the api key"
-                )
-                return []
-            
-            elif "Too many Requests" in text:
-                LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
-                return []
-            
-            else:
-                LOGGER.error(
-                    "The api returned text instead of JSON. The text is:\n%s",
-                    text,
-                )
-                return []
 
 
 class OlarmSetupApi:
@@ -573,24 +602,24 @@ class OlarmSetupApi:
                         self.data = olarm_resp["data"]
                         return self.data
 
-                    except aiohttp.client_exceptions.ContentTypeError:
+                    except (ContentTypeError, APIContentTypeError):
                         text = await response.text()
                         if "Forbidden" in text:
                             LOGGER.error(
                                 "Could not get JSON data due to incorrect API key. Please update the api key"
                             )
-                            return []
+                            return None
                         
-                        elif "Too many Requests" in text:
+                        elif "Too Many Requests" in text:
                             LOGGER.error("Your api key has been blocked due to too many frequent updates. Please regenerate the api key")
-                            return []
+                            return None
                         
                         else:
                             LOGGER.error(
-                                "The api returned text instead of JSON. The text is:\n%s",
+                                "The setup api returned text instead of JSON. The text is:\n%s",
                                 text,
                             )
-                            return []
+                            return None
 
         except APIClientConnectorError as ex:
             LOGGER.error("Olarm SetupAPI Devices error\n%s", ex)

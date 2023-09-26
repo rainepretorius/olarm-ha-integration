@@ -23,7 +23,7 @@ async def async_setup_entry(
     entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
-        if not device["deviceName"] in entry.data[CONF_OLARM_DEVICES]:
+        if device["deviceName"] not in entry.data[CONF_OLARM_DEVICES]:
             continue
         
         # Getting the instance of the DataCoordinator to update the data from Olarm.
@@ -38,7 +38,7 @@ async def async_setup_entry(
         )
         # Looping through the pgm's for the panel.
         for sensor in coordinator.pgm_data:
-            # Creating a butron for each pulse PGM on the alarm panel.
+            # Creating a button for each pulse PGM on the alarm panel.
             if not sensor["pulse"]:
                 continue
 
@@ -215,7 +215,7 @@ class UKeyButtonEntity(Entity):
         Updates the state of the zone sensor from the coordinator.
 
         Returns:
-            boolean: Whether tthe update worked.
+            boolean: Whether the update worked.
         """
         self._state = self.coordinator.ukey_data[self._ukey_number - 1]
 

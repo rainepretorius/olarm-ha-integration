@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from .coordinator import OlarmCoordinator
 from .olarm_api import OlarmApi, OlarmSetupApi
 import asyncio
+import re
 from .const import (
     DOMAIN,
     LOGGER,
@@ -27,6 +28,8 @@ from .exceptions import DictionaryKeyError
 import os
 import voluptuous as vol
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.const import EVENT_CALL_SERVICE
+
 
 
 path = os.path.abspath(__file__).replace("__init__.py", "")
@@ -37,6 +40,14 @@ PLATFORMS = [
     SWITCH_DOMAIN,
 ]
 
+def replace_characters(text):
+    # Remove punctuation and weird characters
+    text = re.sub(r'[^\w\s]', '', text)
+
+    # Replace spaces with underscore
+    text = re.sub(r'\s', '_', text)
+
+    return text
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """
@@ -52,7 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     except:
         raise ConfigEntryNotReady(
-            "Could not connect to the Olarm Api to get the devices linked to your Olarm account"
+            "Could not connect to the Olarm Api to get the devices linked to your Olarm account. Check your API key or reload the integration (not reinstall!!!)"
         )
 
     if len(devices) > int(config_entry.data[OLARM_DEVICE_AMOUNT]):
@@ -70,7 +81,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # Generating services file
     filedata = []
     for device in devices:
-        if not device["deviceName"] in config_entry.data[CONF_OLARM_DEVICES]:
+        if device["deviceName"] not in config_entry.data[CONF_OLARM_DEVICES]:
             continue
 
         LOGGER.info(
@@ -97,14 +108,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             device["deviceId"],
         )
 
-        device_name_for_ha = "_".join(device["deviceName"].lower().split(" "))
+        device_name_for_ha = replace_characters(device["deviceName"].lower())
         
         # Creating an instance of the Olarm API class to call the requests to arm, disarm, sleep, or stay the zones.
         OLARM_API = OlarmApi(
             device_id=device["deviceId"],
             api_key=config_entry.data[CONF_API_KEY],
         )
-
+        
         filedata = []
         filedata.append(
             f"{device_name_for_ha}_bypass_zone:\n  description: Send a request to Olarm to bypass the zone on {device['deviceName']}.\n  fields:\n    zone_num:\n      description: 'Zone Number (Can be found under state attributes for the specified zone.)'\n      example: '1'\n      required: true\n"
@@ -123,6 +134,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 }
             ),
         )
+        
+        # Register the event handler for service call events
+        hass.bus.async_listen(EVENT_CALL_SERVICE, lambda event: handle_service_call_event(coordinator, event, f"{device_name_for_ha}_bypass_zone"))
 
         LOGGER.info(
             "Set up Olarm device (%s) with device id: %s",
@@ -161,6 +175,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def update_listener(hass: HomeAssistant, config_entry):
     """Handle options update."""
+    # Updating the API_KEY
     try:
         if not config_entry.options[CONF_API_KEY] == config_entry.data[CONF_API_KEY]:
             data = {**config_entry.data}
@@ -179,6 +194,7 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
+    # Updating the alarm code
     try:
         if (
             not config_entry.options[CONF_ALARM_CODE]
@@ -205,22 +221,23 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
+    # Updating the devices
     # Getting all the devices.
     setup_api = OlarmSetupApi(api_key=config_entry.data[CONF_API_KEY])
     devices = await setup_api.get_olarm_devices()
     try:
         if (
-            not config_entry.options[CONF_OLARM_DEVICES]
-            == config_entry.data[CONF_OLARM_DEVICES]
+            not len(config_entry.options[CONF_OLARM_DEVICES])
+            == len(config_entry.data[CONF_OLARM_DEVICES])
         ):
             data = {**config_entry.data}
+
+            options = {**config_entry.options}
 
             data[CONF_OLARM_DEVICES] = config_entry.options[CONF_OLARM_DEVICES]
 
             data[OLARM_DEVICES] = devices
             options[OLARM_DEVICES] = devices
-
-            options = {**config_entry.options}
 
             hass.config_entries.async_update_entry(
                 config_entry, data=data, options=options
@@ -237,6 +254,7 @@ async def update_listener(hass: HomeAssistant, config_entry):
         options[OLARM_DEVICES] = devices
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
+    # Updating the Device Amount
     try:
         if (
             not config_entry.options[OLARM_DEVICE_AMOUNT]
@@ -261,5 +279,33 @@ async def update_listener(hass: HomeAssistant, config_entry):
 
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
 
-    
+    # Updating the scan interval
+    try:
+        if (
+            not int(config_entry.options[CONF_SCAN_INTERVAL])
+            == int(config_entry.data[CONF_SCAN_INTERVAL])
+        ):
+            data = {**config_entry.data}
+
+            data[CONF_SCAN_INTERVAL] = config_entry.options[CONF_SCAN_INTERVAL]
+
+            options = {**config_entry.options}
+
+            hass.config_entries.async_update_entry(
+                config_entry, data=data, options=options
+            )
+
+    except (DictionaryKeyError, KeyError):
+        data = {**config_entry.data}
+        options = {**config_entry.options}
+
+        if data[CONF_SCAN_INTERVAL] is not None:
+            options[CONF_SCAN_INTERVAL] = data[CONF_SCAN_INTERVAL]
+
         hass.config_entries.async_update_entry(config_entry, data=data, options=options)
+
+
+async def handle_service_call_event(coordinator: OlarmCoordinator, event, service_name):
+    if event.data['domain'] == DOMAIN and event.data['service'] == service_name:
+        await asyncio.sleep(1)
+        await coordinator.async_update_bypass_data()
