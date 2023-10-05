@@ -386,9 +386,19 @@ class OlarmApi:
 
         return: (list):\tThe utility keys for the alarm panel.
         """
-        ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
-        ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
-        ukey_state = devices_json["deviceProfile"]["ukeysControl"]
+        
+        try:
+          ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
+          ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
+          ukey_state = devices_json["deviceProfile"]["ukeysControl"]
+
+        except (DictionaryKeyError, KeyError):
+            # Error with PGM setup from Olarm app. Skipping PGM's
+            LOGGER.error(
+                "Error geting pgm setup data for Olarm device (%s)", self.device_id
+            )
+            return []
+        
         ukeys = []
         try:
             for i in range(0, ukey_limit):
