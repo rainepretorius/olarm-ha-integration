@@ -393,9 +393,9 @@ class OlarmApi:
           ukey_state = devices_json["deviceProfile"]["ukeysControl"]
 
         except (DictionaryKeyError, KeyError):
-            # Error with PGM setup from Olarm app. Skipping PGM's
+            # Error with Utility Keys setup from Olarm app. Skipping utility keys
             LOGGER.error(
-                "Error geting pgm setup data for Olarm device (%s)", self.device_id
+                "Error geting ukey setup data for Olarm device (%s)", self.device_id
             )
             return []
         
