@@ -3,7 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
 ## Supported Devices
-The integration currently supports all the alarm panels and electric fence energizers listed [here](https://olarm.com/works-with) on Olarm's website.
+The integration currently supports all the alarm panels and electric fence energizers listed [here](https://olarm.com/products/olarm-pro-4g/datasheet) on Olarm's website.
 
 Please note that the integration has currently only been tested on a Paradox MG 5050+ alarm system by the maintainer, but should work for all devices.
 
