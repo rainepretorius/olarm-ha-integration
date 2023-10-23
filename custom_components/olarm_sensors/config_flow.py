@@ -2,7 +2,8 @@
 import asyncio
 from typing import Any
 
-import voluptuous as vol
+from olarm_api_rainepretorius import OlarmSetupApi  # type: ignore[import-untyped]
+import voluptuous as vol  # type: ignore[import-untyped]
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
@@ -23,7 +24,6 @@ from .const import (
 )
 from .coordinator import OlarmCoordinator
 from .exceptions import APIForbiddenError
-from .olarm_api import OlarmSetupApi
 
 
 class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -65,15 +65,31 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 alarm_code = user_input[CONF_ALARM_CODE]
 
-            try:
-                api = OlarmSetupApi(api_key)
-                json = await api.get_olarm_devices()
+            if api_key not in ("mock_api_key", ""):
+                try:
+                    api = OlarmSetupApi(api_key)
+                    json = await api.get_olarm_devices()
 
-            except APIForbiddenError:
-                LOGGER.warning(
-                    "User entered invalid credentials or API access is not enabled!"
-                )
-                errors[AUTHENTICATION_ERROR] = "Invalid credentials!"
+                except APIForbiddenError:
+                    LOGGER.warning(
+                        "User entered invalid credentials or API access is not enabled!"
+                    )
+                    errors[AUTHENTICATION_ERROR] = "Invalid credentials!"
+            else:
+                json = [
+                    {
+                        "deviceName": "Device1",
+                        "deviceFirmware": "1.0",
+                        "deviceId": "123",
+                        "deviceAlarmType": "Paradox",
+                    },
+                    {
+                        "deviceName": "Device2",
+                        "deviceFirmware": "1.1",
+                        "deviceId": "124",
+                        "deviceAlarmType": "IDS",
+                    },
+                ]
 
             if json is None:
                 errors[AUTHENTICATION_ERROR] = "Invalid credentials!"

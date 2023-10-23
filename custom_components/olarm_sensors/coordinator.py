@@ -5,6 +5,8 @@ import contextlib
 from datetime import datetime, timedelta
 import time
 
+from olarm_api_rainepretorius import OlarmApi, OlarmUpdateAPI
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
@@ -12,7 +14,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN, LOGGER, TempEntry
 from .exceptions import APIContentTypeError, ClientConnectorError
-from .olarm_api import OlarmApi, OlarmUpdateAPI
 
 
 class OlarmCoordinator(DataUpdateCoordinator):
@@ -26,6 +27,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
     device_json: dict = {}
     release_data: dict = {}
     device_firmware: str
+    area_triggers: list[str] = ["", "", "", "", "", "", "", ""]
 
     def __init__(
         self,
@@ -66,8 +68,8 @@ class OlarmCoordinator(DataUpdateCoordinator):
         self.bypass_state: list = []
         self.ukey_data: list = []
         self.pgm_data: list = []
-        self.area_changes: list = [{}, {}, {}, {}, {}, {}, {}, {}]
-        self.area_triggers: list = [None, None, None, None, None, None, None, None]
+        self.area_changes: list[dict] = [{}, {}, {}, {}, {}, {}, {}, {}]
+        self.area_triggers: list = ["", "", "", "", "", "", "", ""]
 
         # Setting the device info.
         self.olarm_device_name: str = device_name
