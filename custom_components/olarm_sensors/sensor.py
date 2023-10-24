@@ -25,10 +25,9 @@ async def async_setup_entry(
         await coordinator.update_data()
 
         for panel in coordinator.panel_state:
-            name = panel["name"] + " Trigger"
             sensor = OlarmTriggerSensor(
                 area=panel["area_number"],
-                area_name=name,
+                area_name=panel["name"],
                 coordinator=coordinator,
                 hass=hass,
             )

@@ -197,9 +197,11 @@ class OlarmOptionsFlow(OptionsFlow):
             {
                 vol.Required(
                     CONF_API_KEY,
+                    default=self.config_entry.data[CONF_API_KEY]
                 ): cv.string,
                 vol.Required(
                     CONF_SCAN_INTERVAL,
+                    default=self.config_entry.data[CONF_SCAN_INTERVAL]
                 ): vol.All(vol.Coerce(int), vol.Range(min=5)),
                 vol.Optional(
                     CONF_ALARM_CODE,
