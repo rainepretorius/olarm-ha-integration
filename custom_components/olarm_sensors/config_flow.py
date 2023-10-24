@@ -2,7 +2,7 @@
 import asyncio
 from typing import Any
 
-from .olarm_api import OlarmSetupApi  # type: ignore[import-untyped]
+from olarm_api_rainepretorius import OlarmSetupApi  # type: ignore[import-untyped]
 import voluptuous as vol  # type: ignore[import-untyped]
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
@@ -39,7 +39,7 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         """Handle the initial step."""
-        errors: dict = {str: Any}
+        errors: dict[str, Any] = {}
 
         if user_input is None:
             return await self._show_setup_form()
@@ -113,7 +113,6 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_DEVICE_FIRMWARE: firmware,
                     CONF_ALARM_CODE: alarm_code,
                     CONF_OLARM_DEVICES: setup_devices,
-                    OLARM_DEVICES: json,
                     OLARM_DEVICE_AMOUNT: len(json),
                     OLARM_DEVICE_NAMES: setup_devices,
                 },
@@ -159,27 +158,13 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(
                     CONF_API_KEY,
-                    msg="The api key for your account.",
-                    description={
-                        "suggested_value": "Your Olarm API key",
-                        "description": "API key for accessing the Olarm API. You can find your API key here: https://user.olarm.co/#/api",
-                    },
                 ): cv.string,
                 vol.Required(
-                    CONF_SCAN_INTERVAL,
-                    msg="The update interval in seconds.",
-                    description={
-                        "suggested_value": 10,
-                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 5 seconds.",
-                    },
+                    CONF_SCAN_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=5)),
                 vol.Optional(
                     CONF_ALARM_CODE,
-                    msg="The code for alarm actions. Leave default for no code.",
-                    description={
-                        "suggested_value": "1234567890",
-                        "description": "Alarm Panel Code",
-                    },
+                    default="1234567890"
                 ): cv.string,
             }
         )
@@ -212,34 +197,16 @@ class OlarmOptionsFlow(OptionsFlow):
             {
                 vol.Required(
                     CONF_API_KEY,
-                    msg="The api key for your account.",
-                    description={
-                        "suggested_value": self.config_entry.data[CONF_API_KEY],
-                        "description": "API key for accessing the Olarm API. You can find your API key here: https://user.olarm.co/#/api",
-                    },
                 ): cv.string,
                 vol.Required(
                     CONF_SCAN_INTERVAL,
-                    msg="The update interval in seconds.",
-                    description={
-                        "suggested_value": self.config_entry.data[CONF_SCAN_INTERVAL],
-                        "description": "Interval, in seconds, at which to scan the Olarm device for sensor data. Minimum value is 5 seconds.",
-                    },
                 ): vol.All(vol.Coerce(int), vol.Range(min=5)),
                 vol.Optional(
                     CONF_ALARM_CODE,
-                    msg="The code for alarm actions. Leave default for no code.",
-                    description={
-                        "suggested_value": alarm_code,
-                        "description": "Alarm Panel Code",
-                    },
+                    default=alarm_code
                 ): cv.string,
                 vol.Optional(
                     CONF_OLARM_DEVICES,
-                    msg="The Olarm devices to load into this Home Assistant instance.",
-                    description={
-                        "description": "The Olarm devices to load into this Home Assistant instance.",
-                    },
                 ): cv.multi_select(self.config_entry.data[OLARM_DEVICE_NAMES]),
             }
         )

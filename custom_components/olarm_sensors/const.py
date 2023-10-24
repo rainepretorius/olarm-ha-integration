@@ -11,7 +11,7 @@ from homeassistant.const import (
     STATE_ALARM_TRIGGERED,
 )
 
-VERSION = "2.2.5"
+VERSION = "2.2.6"
 DOMAIN = "olarm_sensors"
 AUTHENTICATION_ERROR = "invalid_credentials"
 LOGGER = logging.getLogger(__package__)
