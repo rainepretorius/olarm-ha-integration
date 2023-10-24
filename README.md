@@ -1,3 +1,6 @@
+# Current issue with Olarm Too Many Requests
+Please note that I am currently in discussion with Olarm to resolve the Too May Requests error. View more updates <a href="https://github.com/rainepretorius/olarm-ha-integration/discussions/85">here.</a>
+
 # Olarm Home Assistant Integration
 <a href="https://www.buymeacoffee.com/rainepretorius"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=rainepretorius&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
