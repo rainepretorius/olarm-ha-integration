@@ -382,6 +382,8 @@ class OlarmApi:
                 pgm_labels = devices_json["deviceProfile"]["pgmLabels"]
                 pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
                 pgm_setup = devices_json["deviceProfile"]["pgmControl"]
+            else
+                return []
 
         except (DictionaryKeyError, KeyError):
             # Error with PGM setup from Olarm app. Skipping PGM's
@@ -446,6 +448,8 @@ class OlarmApi:
                 ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
                 ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
                 ukey_state = devices_json["deviceProfile"]["ukeysControl"]
+            else
+                return []
 
         except (DictionaryKeyError, KeyError):
             # Error with Ukey setup from Olarm app. Skipping Ukey's
