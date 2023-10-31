@@ -377,10 +377,13 @@ class OlarmApi:
         return: (list): The pgm's for the alarm panel.
         """
         try:
-            pgm_state = devices_json["deviceState"]["pgm"]
-            pgm_labels = devices_json["deviceProfile"]["pgmLabels"]
-            pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
-            pgm_setup = devices_json["deviceProfile"]["pgmControl"]
+            if 'pgm' in devices_json["deviceState"] and 'pgmLabels' in devices_json["deviceProfile"] and 'pgmLimit' in devices_json["deviceProfile"] and 'pgmControl' in devices_json["deviceProfile"]:
+                pgm_state = devices_json["deviceState"]["pgm"]
+                pgm_labels = devices_json["deviceProfile"]["pgmLabels"]
+                pgm_limit = devices_json["deviceProfile"]["pgmLimit"]
+                pgm_setup = devices_json["deviceProfile"]["pgmControl"]
+            else:
+                return []
 
         except (DictionaryKeyError, KeyError):
             # Error with PGM setup from Olarm app. Skipping PGM's
@@ -440,9 +443,21 @@ class OlarmApi:
 
         return: (list): The utility keys for the alarm panel.
         """
-        ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
-        ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
-        ukey_state = devices_json["deviceProfile"]["ukeysControl"]
+        try:
+            if 'ukeysLabels' in devices_json["deviceProfile"] and 'ukeysLimit' in devices_json["deviceProfile"] and 'ukeysControl' in devices_json["deviceProfile"]:
+                ukey_labels = devices_json["deviceProfile"]["ukeysLabels"]
+                ukey_limit = devices_json["deviceProfile"]["ukeysLimit"]
+                ukey_state = devices_json["deviceProfile"]["ukeysControl"]
+            else:
+                return []
+
+        except (DictionaryKeyError, KeyError):
+            # Error with Ukey setup from Olarm app. Skipping Ukey's
+            LOGGER.error(
+                "Error getting Ukey setup data for Olarm device (%s)", self.device_id
+            )
+            return []
+
         ukeys = []
         try:
             for i in range(0, ukey_limit):
