@@ -52,7 +52,7 @@ async def async_get_device_diagnostics(
         errors.append(f"{type(e).__name__}: {e}")
 
     index: int = 0
-    config: dict = {str: str}
+    config: dict[str:Any] = {}
 
     for device in devices:
         # Removing unneeded detail

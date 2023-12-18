@@ -5,7 +5,7 @@ import contextlib
 from datetime import datetime, timedelta
 import time
 
-from .olarm_api import OlarmApi, OlarmUpdateAPI
+from olarm_api_rainepretorius import OlarmApi, OlarmUpdateAPI
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_SCAN_INTERVAL
@@ -28,7 +28,8 @@ class OlarmCoordinator(DataUpdateCoordinator):
     release_data: dict = {}
     device_firmware: str
     area_triggers: list[str] = ["", "", "", "", "", "", "", ""]
-
+    api: OlarmApi
+    
     def __init__(
         self,
         hass: HomeAssistant,

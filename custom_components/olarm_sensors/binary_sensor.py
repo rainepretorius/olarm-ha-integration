@@ -102,6 +102,12 @@ class OlarmSensor(BinarySensorEntity):
         if self.type in (0, ""):
             if "pir" in self.sensor_name.lower():
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
+                
+            elif "pmd" in self.sensor_name.lower():
+                self._attr_device_class = BinarySensorDeviceClass.MOTION
+                
+            elif "dg" in self.sensor_name.lower():
+                self._attr_device_class = BinarySensorDeviceClass.MOTION
 
             # Window
             elif (

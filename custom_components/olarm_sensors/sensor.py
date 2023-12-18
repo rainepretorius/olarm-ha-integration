@@ -84,7 +84,7 @@ class OlarmTriggerSensor(SensorEntity):
             return area_triggers
 
         except (TypeError, IndexError):
-            return None
+            return area_triggers
 
     async def async_added_to_hass(self) -> None:
         """Write the state of the sensor to Home Assistant."""

@@ -11,13 +11,12 @@ from homeassistant.const import (
     STATE_ALARM_TRIGGERED,
 )
 
-VERSION = "2.2.6"
+VERSION = "2.2.7"
+
+LOGGER = logging.getLogger(__package__)
+
 DOMAIN = "olarm_sensors"
 AUTHENTICATION_ERROR = "invalid_credentials"
-LOGGER = logging.getLogger(__package__)
-CONF_DEVICE_NAME = "olarm_device_name"
-CONF_DEVICE_MAKE = "olarm_device_make"
-CONF_DEVICE_MODEL = "olarm_device_model"
 CONF_DEVICE_FIRMWARE = "olarm_device_firmware"
 CONF_ALARM_CODE = "olarm_arm_code"
 CONF_OLARM_DEVICES = "selected_olarm_devices"

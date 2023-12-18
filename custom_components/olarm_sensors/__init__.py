@@ -3,7 +3,7 @@ import asyncio
 import os
 import re
 
-from .olarm_api import OlarmApi, OlarmSetupApi
+from olarm_api_rainepretorius import OlarmApi, OlarmSetupApi
 import voluptuous as vol
 
 from homeassistant.components.alarm_control_panel import (
