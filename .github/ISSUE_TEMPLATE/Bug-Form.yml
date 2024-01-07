@@ -59,6 +59,7 @@ body:
         - 2.2.5
         - 2.2.6
         - 2.2.7
+        - 2.2.8
     validations:
       required: true
   - type: textarea

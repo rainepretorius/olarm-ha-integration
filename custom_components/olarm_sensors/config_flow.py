@@ -53,8 +53,8 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
             if not user_input[CONF_SCAN_INTERVAL]:
                 errors[CONF_SCAN_INTERVAL] = "Scan interval is required."
 
-            elif user_input[CONF_SCAN_INTERVAL] < 5:
-                errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 5 seconds."
+            elif user_input[CONF_SCAN_INTERVAL] < 8:
+                errors[CONF_SCAN_INTERVAL] = "Scan interval must be at least 8 seconds."
 
             api_key = user_input[CONF_API_KEY]
             scan_interval = user_input[CONF_SCAN_INTERVAL]
@@ -106,6 +106,7 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
                 domain=DOMAIN,
                 source="User",
                 version=1,
+                minor_version=0,
                 title="Olarm Sensors",
                 data={
                     CONF_API_KEY: api_key,
@@ -161,7 +162,7 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
                 ): cv.string,
                 vol.Required(
                     CONF_SCAN_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=5)),
+                ): vol.All(vol.Coerce(int), vol.Range(min=8)),
                 vol.Optional(
                     CONF_ALARM_CODE,
                     default="1234567890"
@@ -202,7 +203,7 @@ class OlarmOptionsFlow(OptionsFlow):
                 vol.Required(
                     CONF_SCAN_INTERVAL,
                     default=int(self.config_entry.data[CONF_SCAN_INTERVAL])
-                ): vol.All(vol.Coerce(int), vol.Range(min=5)),
+                ): vol.All(vol.Coerce(int), vol.Range(min=8)),
                 vol.Optional(
                     CONF_ALARM_CODE,
                     default=alarm_code
