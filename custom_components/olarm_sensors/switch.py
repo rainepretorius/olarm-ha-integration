@@ -1,19 +1,26 @@
-from homeassistant.components.switch import SwitchEntity
-from homeassistant.core import callback
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.const import CONF_SCAN_INTERVAL
-from datetime import datetime, timedelta
-from .coordinator import OlarmCoordinator
-from .const import LOGGER
-from .const import CONF_DEVICE_FIRMWARE
-from .const import DOMAIN
-from .const import VERSION
-from .const import CONF_OLARM_DEVICES
-from .const import BypassZone
-import random
+"""Switches for Olar integration."""
 import asyncio
+from collections.abc import Mapping
+from datetime import datetime, timedelta
+import random
+from typing import Any
+
+from homeassistant.components.switch import SwitchEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import (
+    CONF_DEVICE_FIRMWARE,
+    CONF_OLARM_DEVICES,
+    DOMAIN,
+    LOGGER,
+    VERSION,
+    BypassZone,
+)
+from .coordinator import OlarmCoordinator
 
 
 async def async_setup_entry(
@@ -23,13 +30,14 @@ async def async_setup_entry(
 
     # Defining the list to store the instances of each alarm zone bypass switch.
     entities = []
+    pgm_entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
         if device["deviceName"] not in entry.data[CONF_OLARM_DEVICES]:
             continue
 
         # Getting the instance of the DataCoordinator to update the data from Olarm.
-        coordinator = hass.data[DOMAIN][device["deviceId"]]
+        coordinator: OlarmCoordinator = hass.data[DOMAIN][device["deviceId"]]
 
         # Getting the first setup data from Olarm. eg: Panelstates, and all zones.
 
@@ -54,7 +62,7 @@ async def async_setup_entry(
                 pgm_number=sensor["pgm_number"],
             )
 
-            entities.append(pgm_switch)
+            pgm_entities.append(pgm_switch)
 
         LOGGER.info(
             "Added Olarm PGM switches for device (%s)", coordinator.olarm_device_name
@@ -83,8 +91,8 @@ async def async_setup_entry(
 
     # Adding Olarm Switches to Home Assistant
     async_add_entities(entities)
+    async_add_entities(pgm_entities)
     LOGGER.info("Added Olarm PGM and Bypass switches for all devices")
-    return True
 
 
 class BypassSwitchEntity(SwitchEntity):
@@ -105,57 +113,49 @@ class BypassSwitchEntity(SwitchEntity):
         self.index = index
         self.last_changed = last_changed
 
-    async def async_turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the zone bypass."""
         await asyncio.sleep(random.uniform(1.5, 3))
-        ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
+        await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
         await asyncio.sleep(random.uniform(1.5, 3))
         await self.coordinator.async_update_bypass_data()
         self.async_write_ha_state()
-        return ret
 
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the zone bypass."""
         await asyncio.sleep(random.uniform(1.5, 3))
-        ret = await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
+        await self.coordinator.api.bypass_zone(BypassZone(self.index + 1))
         await asyncio.sleep(random.uniform(1.5, 3))
         await self.coordinator.async_update_bypass_data()
         self.async_write_ha_state()
-        return ret
 
-    async def async_added_to_hass(self):
-        """
-        Writing the state of the sensor to Home Assistant
-        """
+    async def async_added_to_hass(self) -> None:
+        """Write the state of the sensor to Home Assistant."""
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Handle the update of the new/updated data."""
         if datetime.now() - self.coordinator.last_update > timedelta(
             seconds=(1.5 * self.coordinator.entry.data[CONF_SCAN_INTERVAL])
         ):
             # Only update the state from the api if it has been more than 1.5 times the scan interval since the last update.
             await self.coordinator.async_update_bypass_data()
-        
+
         self._state = self.coordinator.bypass_state[self.index]["state"]
 
     @property
-    def available(self):
-        """
-        Whether the entity is available. IE the coordinator updates successfully.
-        """
+    def available(self) -> bool:
+        """Whether the entity is available. IE the coordinator updates successfully."""
         return (
             self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
             and self.coordinator.device_online
         )
 
     @property
-    def name(self):
-        """
-        The name of the zone from the Alarm Panel
-        """
+    def name(self) -> str:
+        """The name of the zone from the Alarm Panel."""
         name = []
         name1 = self.sensor_name.replace("_", " ")
         for item in str(name1).lower().split(" "):
@@ -169,49 +169,44 @@ class BypassSwitchEntity(SwitchEntity):
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this entity."""
-        return self.coordinator.olarm_device_id + "_bypass_switch_" + self.sensor_name
+        return f"{self.coordinator.olarm_device_id}_bypass_switch_{self.index}"
 
     @property
-    def should_poll(self):
+    def should_poll(self) -> bool:
         """Disable polling. Integration will notify Home Assistant on sensor value update."""
         return False
 
     @property
-    def icon(self):
-        """
-        Setting the icon of the entity depending on the state of the zone.
-        """
+    def icon(self) -> str:
+        """Setting the icon of the entity depending on the state of the zone."""
         # Zone Bypass
         if self.is_on:
             return "mdi:shield-home-outline"
 
-        else:
-            return "mdi:shield-home"
+        return "mdi:shield-home"
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return true if the switch is on."""
         return self.coordinator.bypass_state[self.index]["state"] == "on"
 
     @property
-    def device_state_attributes(self):
-        """
-        The last time the state of the zone/ sensor changed on Olarm's side.
-        """
+    def device_state_attributes(self) -> Mapping[str, Any]:
+        """The last time the state of the zone/ sensor changed on Olarm's side."""
         self.last_changed = self.coordinator.bypass_state[self.index]["last_changed"]
         return {"last_tripped_time": self.last_changed, "zone_number": self.index + 1}
 
     @property
-    def device_info(self) -> dict:
+    def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return {
-            "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
-            "manufacturer": "Raine Pretorius",
-            "model": f"{self.coordinator.olarm_device_make}",
-            "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
-            "sw_version": VERSION,
-            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
-        }
+        return DeviceInfo(
+            manufacturer="Raine Pretorius",
+            name=f"Olarm Sensors ({self.coordinator.olarm_device_name})",
+            model=self.coordinator.olarm_device_make,
+            identifiers={(DOMAIN, self.coordinator.olarm_device_id)},
+            sw_version=VERSION,
+            hw_version=self.coordinator.entry.data[CONF_DEVICE_FIRMWARE],
+        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -238,73 +233,67 @@ class PGMSwitchEntity(SwitchEntity):
         self._state = state
         self.button_enabled = enabled
         self._pgm_number = pgm_number
-        self.post_data = {}
+        self.post_data: dict = {str: str | int}
 
-    async def async_turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the custom switch entity off."""
         self.post_data = {"actionCmd": "pgm-close", "actionNum": self._pgm_number}
 
-        ret = await self.coordinator.api.update_pgm(self.post_data)
+        await self.coordinator.api.update_pgm(self.post_data)
         await self.coordinator.async_update_pgm_ukey_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_write_ha_state()
 
-        return ret
-
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the custom switch entity off."""
         self.post_data = {"actionCmd": "pgm-open", "actionNum": self._pgm_number}
 
-        ret = await self.coordinator.api.update_pgm(self.post_data)
+        await self.coordinator.api.update_pgm(self.post_data)
         await self.coordinator.async_update_pgm_ukey_data()
 
         self._state = self.coordinator.pgm_data[self._pgm_number - 1]
         self.async_write_ha_state()
 
-        return ret
-
-    async def async_added_to_hass(self):
+    async def async_added_to_hass(self) -> None:
         """Run when the entity is added to Home Assistant."""
         await super().async_added_to_hass()
 
     @property
-    def available(self):
-        """
-        Whether the entity is available. IE the coordinator updatees successfully.
-        """
+    def available(self) -> bool:
+        """Whether the entity is available. IE the coordinator updates successfully."""
         return (
             self.coordinator.last_update > datetime.now() - timedelta(minutes=2)
             and self.coordinator.device_online
         )
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the custom switch entity."""
         return self.sensor_name + " (" + self.coordinator.olarm_device_name + ")"
 
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this entity."""
-        return self.coordinator.olarm_device_id + "_pgm_switch_" + self.sensor_name
+        return f"{self.coordinator.olarm_device_id}_pgm_switch_{self._pgm_number}"
 
     @property
-    def should_poll(self):
+    def should_poll(self) -> bool:
         """Disable polling."""
         return False
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return true if the switch is on."""
         return self._state
 
     @property
-    def icon(self):
+    def icon(self) -> str:
         """Return the icon of the custom switch entity."""
         return "mdi:toggle-switch"
 
     @property
-    def device_info(self) -> dict:
+    def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
         return {
             "name": f"Olarm Sensors ({self.coordinator.olarm_device_name})",
@@ -312,5 +301,5 @@ class PGMSwitchEntity(SwitchEntity):
             "model": f"{self.coordinator.olarm_device_make}",
             "identifiers": {(DOMAIN, self.coordinator.olarm_device_id)},
             "sw_version": VERSION,
-            "hw_version": f"{self.coordinator.entry.data[CONF_DEVICE_FIRMWARE]}",
+            "hw_version": f"{self.coordinator.device_firmware}",
         }

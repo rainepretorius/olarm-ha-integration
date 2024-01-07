@@ -1,23 +1,22 @@
-"""Module that stores all the constants for the integration"""
+"""Module that stores all the constants for the integration."""
 import logging
+
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.const import (
     STATE_ALARM_ARMED_AWAY,
+    STATE_ALARM_ARMED_HOME,
     STATE_ALARM_ARMED_NIGHT,
     STATE_ALARM_ARMING,
-    STATE_ALARM_TRIGGERED,
-    STATE_ALARM_ARMED_HOME,
     STATE_ALARM_DISARMED,
+    STATE_ALARM_TRIGGERED,
 )
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
+VERSION = "2.2.8"
 
-VERSION = "2.2.4"
+LOGGER = logging.getLogger(__package__)
+
 DOMAIN = "olarm_sensors"
 AUTHENTICATION_ERROR = "invalid_credentials"
-LOGGER = logging.getLogger(__package__)
-CONF_DEVICE_NAME = "olarm_device_name"
-CONF_DEVICE_MAKE = "olarm_device_make"
-CONF_DEVICE_MODEL = "olarm_device_model"
 CONF_DEVICE_FIRMWARE = "olarm_device_firmware"
 CONF_ALARM_CODE = "olarm_arm_code"
 CONF_OLARM_DEVICES = "selected_olarm_devices"
@@ -57,21 +56,36 @@ OLARM_ZONE_TYPE_TO_HA = {
     1001: BinarySensorDeviceClass.POWER,
 }
 
+GITHUB_TOKEN = "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"
+
+
+class TempEntry:
+    """DOCSTRING: Representation of the area number."""
+
+    scan_interval: int = 10
+    api_key: str = ""
+
+    def __init__(self, scan_interval: int, api_key: str) -> None:
+        """Set up the representation of a config entry."""
+        self.scan_interval = scan_interval
+        self.api_key = api_key
+
+    @property
+    def data(self):
+        """Returns the zone number for the api."""
+        return {"scan_interval": self.scan_interval, "api_key": self.api_key}
+
 
 class BypassZone:
-    """
-    DOCSTRING: Representation of the area number
-    """
+    """DOCSTRING: Representation of the area number."""
 
     zone: int = 0
 
     def __init__(self, zone: int) -> None:
+        """Representation of the area number."""
         self.zone = zone
-        return None
 
     @property
     def data(self):
-        """
-        DOCSTRING: Returns the zone number for the api.
-        """
+        """Returns the zone number for the api."""
         return {"zone_num": self.zone}
