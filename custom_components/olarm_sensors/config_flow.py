@@ -2,7 +2,7 @@
 import asyncio
 from typing import Any
 
-from olarm_api_rainepretorius import OlarmSetupApi  # type: ignore[import-untyped]
+from .olarm_api import OlarmSetupApi  # type: ignore[import-untyped]
 import voluptuous as vol  # type: ignore[import-untyped]
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
