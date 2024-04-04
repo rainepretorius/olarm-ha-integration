@@ -96,16 +96,18 @@ class OlarmSensor(BinarySensorEntity):
         self.last_changed = last_changed
         self.type = sensortype
         self.sensortypestring = "N/A"
+        if "powered by" not in self.sensor_name.lower():
+            self.entity_id = f'binary_sensor.{self.coordinator.olarm_device_name}_zone_{self.index + 1}'
 
         # Setting the type of Binarysensor
         # Motion Sensor
         if self.type in (0, ""):
             if "pir" in self.sensor_name.lower():
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
-                
+
             elif "pmd" in self.sensor_name.lower():
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
-                
+
             elif "dg" in self.sensor_name.lower():
                 self._attr_device_class = BinarySensorDeviceClass.MOTION
 

@@ -29,7 +29,7 @@ class OlarmCoordinator(DataUpdateCoordinator):
     device_firmware: str
     area_triggers: list[str] = ["", "", "", "", "", "", "", ""]
     api: OlarmApi
-    
+
     def __init__(
         self,
         hass: HomeAssistant,

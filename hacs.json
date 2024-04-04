@@ -4,6 +4,6 @@
   "description": "Integration for Olarm devices",
   "domains": ["binary_sensor", "alarm_control_panel", "button", "switch"],
   "documentation": "https://github.com/rainepretorius/olarm-ha-integration/blob/main/README.md",
-  "version": "2.2.8",
+  "version": "2.2.9",
   "iot_class": "cloud_push"
 }

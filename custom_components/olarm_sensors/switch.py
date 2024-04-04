@@ -112,6 +112,7 @@ class BypassSwitchEntity(SwitchEntity):
         self._state = state
         self.index = index
         self.last_changed = last_changed
+        self.entity_id = f'switch._{self.coordinator.olarm_device_name}_zone_{self.index + 1}_bypass'
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the zone bypass."""
@@ -232,8 +233,10 @@ class PGMSwitchEntity(SwitchEntity):
         self.sensor_name = name
         self._state = state
         self.button_enabled = enabled
+        self.entity_registry_enabled_default = enabled
         self._pgm_number = pgm_number
         self.post_data: dict = {str: str | int}
+        self.entity_id = f'switch.{self.coordinator.olarm_device_name}_pgm_{self._pgm_number + 1}'
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the custom switch entity off."""
