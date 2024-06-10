@@ -146,11 +146,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             device["deviceId"],
         )
 
-    with open(
-        file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8"
-    ) as service_file:
-        for line in filedata:
-            service_file.write(line)
+    # with open(
+    #     file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8"
+    # ) as service_file:
+    #     for line in filedata:
+    #         service_file.write(line)
 
     # Forwarding the setup for the other Home Assistant platforms.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
