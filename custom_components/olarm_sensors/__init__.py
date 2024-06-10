@@ -1,4 +1,5 @@
 """Integration for Olarm Devices for Home Assistant."""
+
 import asyncio
 import os
 import re
@@ -53,6 +54,14 @@ def replace_characters(text):
     text = re.sub(r"\s", "_", text)
 
     return text
+
+
+def write_serivce_file(filedata):
+    with open(
+        file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8"
+    ) as service_file:
+        for line in filedata:
+            service_file.write(line)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -146,11 +155,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             device["deviceId"],
         )
 
-    # with open(
-    #     file=os.path.join(path, "services.yaml"), mode="w+", encoding="utf8"
-    # ) as service_file:
-    #     for line in filedata:
-    #         service_file.write(line)
+    # Write the service file for bypassing zones on the devices
+    await hass.async_add_executor_job(write_serivce_file, filedata)
 
     # Forwarding the setup for the other Home Assistant platforms.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
