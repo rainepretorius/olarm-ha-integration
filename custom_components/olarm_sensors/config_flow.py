@@ -104,6 +104,7 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
             firmware = json[0]["deviceFirmware"]
             temp_entry = ConfigEntry(
                 domain=DOMAIN,
+                unique_id=f'olarm_sensors_{api_key}',
                 source="User",
                 version=1,
                 minor_version=0,
@@ -117,6 +118,15 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
                     OLARM_DEVICE_AMOUNT: len(json),
                     OLARM_DEVICE_NAMES: setup_devices,
                 },
+                options={
+                    CONF_API_KEY: api_key,
+                    CONF_SCAN_INTERVAL: scan_interval,
+                    CONF_DEVICE_FIRMWARE: firmware,
+                    CONF_ALARM_CODE: alarm_code,
+                    CONF_OLARM_DEVICES: setup_devices,
+                    OLARM_DEVICE_AMOUNT: len(json),
+                    OLARM_DEVICE_NAMES: setup_devices,
+                }
             )
 
             for device in json:
