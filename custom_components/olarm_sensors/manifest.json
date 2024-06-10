@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/rainepretorius/olarm-ha-integration/issues",
   "quality_scale": "silver",
   "requirements": ["olarm-api-rainepretorius", "aiohttp"],
-  "version": "2.2.9"
+  "version": "2.3.0"
 }
