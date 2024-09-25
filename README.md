@@ -4,9 +4,9 @@ Updates regarding the issue can be found [here](https://github.com/rainepretoriu
 
 # Important Update Regarding Integration
 
-Due to recent changes made by Olarm that have rendered their API unusable for third-party applications, it is no longer possible to maintain the current integration. Specifically, the API's imposed limits and frequent "429 Too Many Requests" errors have created significant challenges that cannot be overcome without intervention from Olarm.
+Due to recent changes made by Olarm that have rendered their API unusable for third-party applications, it is no longer possible to make significant updates to this integration. Specifically, the API's imposed limits and frequent "429 Too Many Requests" errors have created issues that can only be fixed by Olarm themselves. 
 
-Unless Olarm removes these restrictions or provides a direct solution, I regret to inform you that I will no longer be maintaining or supporting this integration. I encourage users to reach out to Olarm for further assistance or explore alternatives.
+While I will continue to address critical bugs and errors, new features or enhancements will not be added until Olarm removes these restrictions or provides a direct solution. I encourage users to reach out to Olarm for further assistance. i will provide updates for possible alternatives.
 
 ---
 
