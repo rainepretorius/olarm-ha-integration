@@ -10,9 +10,9 @@ While I will continue to address critical bugs and errors, new features or enhan
 
 ---
 
-## Possibility of Creating My Own Olarm for Paradox Systems
+## Possibility of Creating My Own Remote Monitoring solution for Paradox Systems
 
-I am excited to announce that I have begun developing my own version of an **Olarm** that will work on most **Paradox alarm systems**. This solution will be based on the **Paradox Alarm Interface (PAI)**, which will enable full-feature integration for Paradox systems.
+I am excited to announce that I have begun developing my own version similar to an Olarm that will work on most **Paradox alarm systems**. This solution will be based on the **Paradox Alarm Interface (PAI)**, which will enable full-feature integration for Paradox systems.
 
 ### Key Features:
 - **PAI Backend**: My custom Olarm will have full Paradox Alarm Interface (PAI) support, ensuring all Paradox alarm features are accessible through the system.
