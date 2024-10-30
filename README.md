@@ -16,7 +16,7 @@ I am excited to announce that I have begun developing my own version similar to 
 
 ### Key Features:
 - **PAI Backend**: My custom Olarm will have full Paradox Alarm Interface (PAI) support, ensuring all Paradox alarm features are accessible through the system.
-  - **Zone Monitoring and Control**: Control all Paradox alarm zones such as motion, door, and window sensors.
+  - **Zone Monitoring and Control**: Control all Paradox alarm zones such as motion, door, and window sensors. Also supports zone tampering sensors.
   - **Real-time Alarm Status**: Receive real-time updates on the system’s state, including arming/disarming status.
   - **Event Logging**: Complete event logging for all alarm activities, similar to the current Olarm API but without the limitations.
   - **Battery Monitoring**: In addition to core features, the system will monitor the **battery percentage** of the alarm, ensuring system health checks are more transparent.
