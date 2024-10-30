@@ -1,5 +1,6 @@
 """Module used for a GUI to configure the device."""
 import asyncio
+from types import MappingProxyType
 from typing import Any
 
 from .olarm_api import OlarmSetupApi  # type: ignore[import-untyped]
@@ -109,6 +110,7 @@ class OlarmSensorsConfigFlow(ConfigFlow, domain=DOMAIN):
                 version=1,
                 minor_version=0,
                 title="Olarm Sensors",
+                discovery_keys=MappingProxyType({}),
                 data={
                     CONF_API_KEY: api_key,
                     CONF_SCAN_INTERVAL: scan_interval,

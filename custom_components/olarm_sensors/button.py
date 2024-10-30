@@ -20,6 +20,7 @@ async def async_setup_entry(
 
     # Defining the list to store the instances of each alarm zone.
     entities = []
+    ukey_entities = []
 
     for device in hass.data[DOMAIN]["devices"]:
         if device["deviceName"] not in entry.data[CONF_OLARM_DEVICES]:
@@ -60,7 +61,6 @@ async def async_setup_entry(
             coordinator.olarm_device_name,
         )
         # Looping through the ukeys's for the panel.
-        ukey_entities = []
         for sensor1 in coordinator.ukey_data:
             # Creating a button for each Utility Key on the alarm panel.
             ukey_button = UKeyButtonEntity(
